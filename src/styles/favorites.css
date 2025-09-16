@@ -1,0 +1,37 @@
+.favorites-page h2{
+    color: darkgreen;
+    font-size: xx-large;
+    text-align: center;
+    padding-top:2rem;
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+}
+
+
+#root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+main {
+  flex: 1;
+}
+
+/* Footer styling */
+.footer {
+  padding: 20px;
+  text-align: center;
+  background: #2e7d32;
+  color: white;
+}
+
+.fav p{
+    color: darkgreen;
+    font-size: xx-large;
+    text-align: center;
+    padding-top:2rem;
+}
