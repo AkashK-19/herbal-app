@@ -112,7 +112,7 @@ const sampleReviews = [
 ];
 
 function Home() {
-  const { isInitialLoading } = useContext(LoadingContext); // Use global loading
+  const { isInitialLoading } = useContext(LoadingContext); 
   const [reviews, setReviews] = useState([]); 
   const [showSuccess, setShowSuccess] = useState(false); 
   const [name, setName] = useState('');
