@@ -125,7 +125,7 @@ function Plants() {
     //   // Extract filter options...
     // }).catch(err => setError(err));
 
-    setTimeout(() => {
+  
       setPlants(mockPlants);
       setFilteredPlants(mockPlants);
 
@@ -143,7 +143,7 @@ function Plants() {
       });
 
       setLoading(false);
-    }, 1000);
+
   }, []);
 
   useEffect(() => {

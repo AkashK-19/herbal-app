@@ -1,10 +1,11 @@
 import React from 'react';
-import '../styles/plants.css'; // Or create plantCard.css if you want
-
+import FavoriteButton from './FavoriteButton'; 
+import '../styles/plants.css'; 
 function PlantCard({ plant, onClick }) {
   return (
     <div
-      className="plant-card"
+      className="plant-card" 
+      style={{ position: 'relative' }} 
       onClick={onClick}
       role="button"
       tabIndex={0}
@@ -29,6 +30,11 @@ function PlantCard({ plant, onClick }) {
         <h3 className="plant-name">{plant.common_name || 'Unknown Plant'}</h3>
         <h4 className="plant-scientific">{plant.scientific_name || 'Scientific name unavailable'}</h4>
       </div>
+      
+      <div onClick={(e) => e.stopPropagation()}>
+        <FavoriteButton plantName={plant.common_name} />
+      </div>
+      
     </div>
   );
 }

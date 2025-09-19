@@ -1,11 +1,12 @@
 // Home.jsx 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom'; 
 import FavoriteButton from '../components/FavoriteButton'; 
 import '../styles/home.css'; 
 import '../styles/plants.css'; 
+import { LoadingContext } from '../context/LoadingContext'; // Adjust path if needed
 
-// Mock data 
+// Mock data (unchanged)
 const mockFeaturedPlants = [
   {
     id: 3, 
@@ -75,7 +76,7 @@ const mockFeaturedPlants = [
   }
 ];
 
-// Mock data for subscription plans 
+// Mock data for subscription plans (unchanged)
 const mockSubscriptionPlans = [
   {
     id: 1,
@@ -100,7 +101,7 @@ const mockSubscriptionPlans = [
   }
 ];
 
-// Mock sample reviews 
+// Mock sample reviews (unchanged)
 const sampleReviews = [
   {
     name: "James Parker",
@@ -111,7 +112,7 @@ const sampleReviews = [
 ];
 
 function Home() {
-  const [loading, setLoading] = useState(true); 
+  const { isInitialLoading } = useContext(LoadingContext); // Use global loading
   const [reviews, setReviews] = useState([]); 
   const [showSuccess, setShowSuccess] = useState(false); 
   const [name, setName] = useState('');
@@ -122,18 +123,16 @@ function Home() {
 
   const navigate = useNavigate();
 
-  // Dynamic stats calculation
+  // Dynamic stats calculation (unchanged)
   const totalPlants = mockFeaturedPlants.length;
   const uniqueBenefits = new Set(
     mockFeaturedPlants.flatMap(p => p.health_benefits.split(',').map(b => b.trim().toLowerCase()))
   ).size;
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 1000);
+    // No timeout here anymore
 
-    // Check if user is logged in
+    // Check if user is logged in (unchanged)
     const userData = sessionStorage.getItem('currentUser');
     const loginStatus = sessionStorage.getItem('isLoggedIn');
     
@@ -144,11 +143,9 @@ function Home() {
 
     const savedReviews = JSON.parse(localStorage.getItem("reviews")) || [];
     setReviews(savedReviews.length > 0 ? savedReviews : sampleReviews);
-
-    return () => clearTimeout(timer);
   }, []);
 
-  // Function to handle logout
+  // Function to handle logout (unchanged)
   const handleLogout = () => {
     sessionStorage.removeItem('currentUser');
     sessionStorage.removeItem('isLoggedIn');
@@ -156,7 +153,7 @@ function Home() {
     setIsLoggedIn(false);
   };
 
-  // Function to add review (dynamic, with localStorage)
+  // Function to add review (unchanged)
   const addReview = (newReview) => {
     const updatedReviews = [newReview, ...reviews];
     setReviews(updatedReviews); 
@@ -165,7 +162,7 @@ function Home() {
     setTimeout(() => setShowSuccess(false), 3000);
   };
 
-  // Handle form submit
+  // Handle form submit (unchanged)
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!name.trim()) {
@@ -192,17 +189,17 @@ function Home() {
     setMessage('');
   };
 
-  //plant card click - Navigate to PlantDetails page
+  // Plant card click (unchanged)
   const handlePlantCardClick = (plantId) => {
     navigate(`/plants/${plantId}`);
   };
 
-  // subscription card click - Navigate to Subscribe page
+  // Subscription card click (unchanged)
   const handleSubscriptionClick = (planId) => {
     navigate(`/subscribe/${planId}`);
   };
 
-  if (loading) {
+  if (isInitialLoading) {
     return (
       <div id="preloader">
         <img src="/assets/logo.svg" alt="Loading..." />
@@ -218,7 +215,7 @@ function Home() {
         <div className="hero-btns">
           {isLoggedIn ? (
             <div className="user-welcome">
-              <span className="welcome-text" >Hello, {currentUser?.name}!</span>
+              <span className="welcome-text">Hello, {currentUser?.name}!</span>
               <button className="logout-btn" onClick={handleLogout}>Logout</button>
             </div>
           ) : (

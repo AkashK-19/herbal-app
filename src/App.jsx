@@ -14,7 +14,7 @@ import NotFound from './pages/NotFound';
 function App() {
   return (
     <Router>
-      <Header /> {/* Only one Header here */}
+      <Header />
       <main>
         <Routes>
           <Route path="/" element={<Home />} />

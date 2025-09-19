@@ -161,6 +161,11 @@ const Account = () => {
         navigate('/');
     };
 
+    // Handle back to home
+    const handleBackToHome = () => {
+        navigate('/');
+    };
+
     // Handle sign in
     const handleSignIn = async (e) => {
         e.preventDefault();
@@ -421,6 +426,17 @@ const Account = () => {
                         </form>
                     </div>
                 </div>
+
+                {/* Back to Home Button */}
+                <button 
+                    className="back-to-home-btn"
+                    onClick={handleBackToHome}
+                >
+                    <svg className="back-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+                    </svg>
+                    Back to Home
+                </button>
             </section>
         </div>
     );

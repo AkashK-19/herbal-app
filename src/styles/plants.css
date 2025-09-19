@@ -434,49 +434,42 @@
     text-align: center;
 }
 
-/* Heart Button */
-.favorite-btn {
-    position: absolute;
-    top: 15px;
-    right: 15px;
-    width: 40px;
-    height: 40px;
-    background: rgba(255, 255, 255, 0.9);
-    border: none;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    z-index: 10;
-    transition: all 0.3s ease;
-    backdrop-filter: blur(10px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+.fav-btn {
+  all: unset;
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;  
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: #fff;
+  color: #bbb;
+  font-size: 20px;
+  cursor: pointer;
+  z-index: 2;
+
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  transition: color 0.3s, transform 0.2s, box-shadow 0.3s;
 }
 
-.favorite-btn:hover {
-    background: rgba(255, 255, 255, 1);
-    transform: scale(1.1);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+.fav-btn:hover {
+  color: #e53935;
+  transform: scale(1.1);
+  box-shadow: 0 3px 10px rgba(0,0,0,0.25);
 }
 
-.favorite-btn.active {
-    background: rgba(255, 69, 58, 0.1);
-    border: 2px solid #ff453a;
+.fav-btn.active {
+  color: #e53935;
 }
 
-.favorite-btn .heart-icon {
-    font-size: 20px;
-    transition: all 0.3s ease;
-}
-
-.favorite-btn:not(.active) .heart-icon {
-    color: #666;
-}
-
-.favorite-btn.active .heart-icon {
-    color: #ff453a;
-    transform: scale(1.2);
+.plant-card {
+    position: relative; 
+     overflow: hidden;
 }
 
 /* Hover Glow Effect */
