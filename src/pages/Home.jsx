@@ -189,12 +189,12 @@ function Home() {
     setMessage('');
   };
 
-  // Plant card click (unchanged)
+  // Plant card click 
   const handlePlantCardClick = (plantId) => {
     navigate(`/plants/${plantId}`);
   };
 
-  // Subscription card click (unchanged)
+  // Subscription card click 
   const handleSubscriptionClick = (planId) => {
     navigate(`/subscribe/${planId}`);
   };
@@ -202,8 +202,9 @@ function Home() {
   if (isInitialLoading) {
     return (
       <div id="preloader">
-        <img src="/assets/logo.svg" alt="Loading..." />
+        <img src="/assets/logo2.png" alt="Loading..." />
       </div>
+
     );
   }
 

@@ -419,25 +419,6 @@ button:hover {
     color: #ddd;
 }
 
-/* RESPONSIVE */
-@media (max-width: 768px) {
-    .header {
-        flex-direction: column;
-        padding: 15px;
-    }
-    .header nav {
-        margin-top: 12px;
-    }
-    .hero h1 {
-        font-size: 34px;
-    }
-
-    .stats {
-        flex-direction: column;
-        gap: 25px;
-    }
-}
-
 
 /* HERO BUTTON - Black & White Theme */
 .hero-btns {
@@ -522,9 +503,10 @@ html {
 }
 
 #preloader img {
-    width: 150px; 
-    height: 150px;
+    width: 11rem; 
+    height: 11rem;
 }
+
 
 #preloader.hidden {
     opacity: 0;
@@ -533,7 +515,7 @@ html {
 
 /* Reviews Section */
 .reviews {
-    background: linear-gradient(180deg, #f9fdf9 0%, #e8f5e9 100%); /* Subtle gradient for depth */
+    background: linear-gradient(180deg, #f9fdf9 0%, #e8f5e9 100%);
     padding: 80px 20px;
     text-align: center;
     position: relative;
@@ -542,20 +524,20 @@ html {
 
 .reviews h2 {
     color: #2e7d32;
-    font-size: 36px; /* Slightly larger for emphasis */
+    font-size: 36px; 
     font-weight: 700;
     margin-bottom: 15px;
-    text-transform: uppercase; /* Modern touch */
+    text-transform: uppercase;
     letter-spacing: 0.5px;
 }
 
 .reviews .section-desc {
-    max-width: 750px; /* Slightly wider for balance */
+    max-width: 750px; 
     margin: 0 auto 40px;
     color: #555;
     font-size: 16px;
-    line-height: 1.7; /* Improved readability */
-    opacity: 0.9; /* Subtle fade for elegance */
+    line-height: 1.7; 
+    opacity: 0.9; 
 }
 
 
@@ -877,33 +859,5 @@ html {
         min-width: 280px;
         max-width: 280px;
         padding: 20px;
-    }
-}
-
-@media (max-width: 480px) {
-    .review-form {
-        padding: 20px;
-        gap: 15px;
-    }
-
-    .review-form input,
-    .review-form textarea,
-    .review-form .rating select {
-        font-size: 14px;
-        padding: 14px;
-    }
-
-    .review-form button {
-        padding: 14px 35px;
-        font-size: 15px;
-    }
-
-    .review-card {
-        min-width: 250px;
-        max-width: 250px;
-    }
-
-    .review-track {
-        animation-duration: 40s;
     }
 }

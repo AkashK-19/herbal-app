@@ -11,6 +11,7 @@ function Plants() {
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('alphabetical');
+  const [showBackToTop, setShowBackToTop] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [filters, setFilters] = useState({
     region: '',
@@ -220,6 +221,21 @@ function Plants() {
     });
   };
 
+  // Scroll handler for back to top button
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowBackToTop(window.scrollY > 300);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Scroll to top
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const hasActiveFilters = Object.values(filters).some(value => value !== '');
 
   if (loading) return <div>Loading plants...</div>;
@@ -392,6 +408,14 @@ function Plants() {
           </button>
         </div>
       )}
+
+      {/* Back to Top Button */}
+      {showBackToTop && (
+        <div className="back-to-top show" onClick={scrollToTop}>
+          <i className="fas fa-chevron-up"></i>
+        </div>
+      )}
+      
     </div>
   );
 }
