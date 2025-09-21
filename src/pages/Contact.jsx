@@ -31,7 +31,7 @@ const Contact = () => {
   const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
   const MAX_MESSAGE_LENGTH = 1000;
 
-  // FAQ data - can be moved to a separate data file later
+  // FAQ data 
   const faqData = [
     {
       id: 1,
@@ -55,7 +55,7 @@ const Contact = () => {
     }
   ];
 
-  // Contact information - can be moved to a config file
+  // Contact information
   const contactInfo = {
     location: {
       icon: 'fas fa-map-marker-alt',
@@ -65,7 +65,7 @@ const Contact = () => {
     phone: {
       icon: 'fas fa-phone',
       title: 'Phone Numbers',
-      details: ['Main: +91 98765 43210', 'Support: +91 98765 43211', 'Toll-free: 1800-GREEN-01']
+      details: ['Main: +91 94034 00841', 'Support: +91 90211 65398', 'Toll-free: 1800-GREEN-01']
     },
     email: {
       icon: 'fas fa-envelope',
@@ -93,11 +93,10 @@ const Contact = () => {
     { icon: 'fas fa-leaf', text: 'Plant Database', url: '/plants' },
     { icon: 'fas fa-book', text: 'Growing Guides', url: '/guides' },
     { icon: 'fas fa-question-circle', text: 'FAQ', url: '/faq' },
-    { icon: 'fas fa-download', text: 'Mobile App', url: '/app' },
     { icon: 'fas fa-certificate', text: 'Certifications', url: '/certifications' }
   ];
 
-  // Scroll handler for back to top button
+  // Scroll handler 
   useEffect(() => {
     const handleScroll = () => {
       setShowBackToTop(window.scrollY > 300);
@@ -205,10 +204,9 @@ const Contact = () => {
       });
       setUploadedFiles([]);
       
-      // Hide success message after 5 seconds
       setTimeout(() => {
         setShowSuccess(false);
-      }, 5000);
+      }, 4000);
 
     } catch (error) {
       console.error('Error submitting form:', error);
@@ -298,7 +296,7 @@ const Contact = () => {
     if (count > 750) return '#f59e0b';
     return '#6b7280';
   };
-
+  
   // Toggle FAQ
   const toggleFAQ = (id) => {
     setActiveFAQ(activeFAQ === id ? null : id);

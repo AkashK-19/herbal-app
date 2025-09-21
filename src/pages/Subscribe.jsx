@@ -1,5 +1,10 @@
 // src/pages/Subscribe.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { 
+  FileText, Users, Shield, Globe, Headphones, MessageCircle, 
+  Bell, Smartphone, ArrowUp, X, Clock, QrCode, ChevronDown, 
+  ChevronUp, Loader, CheckCircle, XCircle, CreditCard
+} from 'lucide-react';
 import '../styles/sub.css';
 
 function Subscribe() {
@@ -8,151 +13,392 @@ function Subscribe() {
     price: 49,
     period: 'week',
     description: 'Billed weekly',
-    originalPrice: 299
+    originalPrice: 299,
+    discount: 33,
+    popular: false,
+    savings: 100
   });
 
   const plans = [
     { 
       type: 'weekly', 
       price: 49, 
-      originalPrice: 69,
+      originalPrice: 299,
       period: 'week', 
       description: 'Billed weekly',
-      discount: 30,
-      popular: false
+      discount: 33,
+      popular: false,
+      savings: 100
     },
     { 
       type: 'monthly', 
       price: 149, 
-      originalPrice: 299,
+      originalPrice: 899,
       period: 'month', 
       description: 'Billed monthly',
-      discount: 50,
-      popular: true
+      discount: 33,
+      popular: true,
+      savings: 300
     },
     { 
       type: 'yearly', 
       price: 1499, 
-      originalPrice: 3750,
+      originalPrice: 8999,
       period: 'year', 
       description: 'Billed yearly',
-      discount: 60,
-      popular: false
+      discount: 33,
+      popular: false,
+      savings: 3000
     },
   ];
 
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [qrCode, setQrCode] = useState(null);
+  const [paymentStatus, setPaymentStatus] = useState('pending');
+  const [orderId, setOrderId] = useState(null);
   const [successModalOpen, setSuccessModalOpen] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(300);
-  const [paymentStatus, setPaymentStatus] = useState('waiting');
-  const [qrFilled, setQrFilled] = useState([]);
   const [activeFaq, setActiveFaq] = useState(null);
   const [showBackToTop, setShowBackToTop] = useState(false);
-  const [priceAnimation, setPriceAnimation] = useState('');
-  const [usageStats, setUsageStats] = useState({
-    plantsViewed: 0,
-    videosWatched: 0,
-    questionsAsked: 0
-  });
+  const [isLoading, setIsLoading] = useState(false);
+  const [paymentLoading, setPaymentLoading] = useState(false);
+  const [paymentTimer, setPaymentTimer] = useState(600);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('upi');
+  const [razorpayLoaded, setRazorpayLoaded] = useState(false);
+  
+  const toggleContainerRef = useRef(null);
+
+  const featureCategories = [
+    {
+      features: [
+        { icon: FileText, text: "Access to 500+ premium plant guides", color: "text-blue-600" },
+        { icon: Users, text: "Detailed growing and care instructions", color: "text-pink-600" },
+        { icon: Globe, text: "Seasonal planting calendar", color: "text-violet-600" },
+        { icon: Bell, text: "Priority customer support", color: "text-pink-600" },
+      ]
+    }
+  ];
 
   const faqs = [
     {
       question: 'How do I cancel my subscription?',
-      answer: 'You can cancel your subscription at any time from your account settings. You\'ll continue to have access until the end of your current billing period.',
+      answer: 'You can cancel your subscription at any time from your account settings. You\'ll continue to have access until the end of your current billing period. No cancellation fees apply.'
     },
     {
       question: 'Can I switch between billing cycles?',
-      answer: 'Yes! You can change from weekly to monthly or yearly billing at any time. Changes will take effect at your next billing cycle.',
+      answer: 'Yes! You can upgrade or downgrade your billing cycle at any time. When upgrading, you\'ll be charged the prorated difference immediately. When downgrading, the change takes effect at your next billing cycle.'
     },
     {
       question: 'Is there a refund policy?',
-      answer: 'We offer a 7-day money-back guarantee for all new subscriptions. If you\'re not satisfied, contact us for a full refund.',
+      answer: 'We offer a 7-day money-back guarantee for all new subscriptions. If you\'re not satisfied within the first week, contact our support team for a full refund, no questions asked.'
     },
     {
       question: 'What payment methods do you accept?',
-      answer: 'We accept UPI, credit cards, debit cards, net banking, and digital wallets. You can pay via QR code or card details.',
+      answer: 'We accept all major payment methods including UPI (PhonePe, Google Pay, Paytm, BHIM), credit cards, debit cards, net banking, and digital wallets. All payments are processed securely through Razorpay.'
     },
     {
-      question: 'Do you offer student discounts?',
-      answer: 'Yes! We offer a 20% student discount. Contact our support team with your valid student ID to apply the discount.',
+      question: 'Do I get access to all features immediately?',
+      answer: 'Yes! Once your payment is confirmed, you get instant access to all premium features including the complete plant database, video tutorials, expert consultations, and mobile app.'
     },
     {
-      question: 'Can I share my account with family members?',
-      answer: 'Each subscription is for individual use. We offer family plans at discounted rates for multiple users.',
+      question: 'Can I use my subscription on multiple devices?',
+      answer: 'Absolutely! Your premium subscription works across all your devices - desktop, mobile, and tablet. Simply log in with your account credentials to access your subscription anywhere.'
     }
   ];
 
-  // Animate usage stats on component mount
+  // Load Razorpay script
   useEffect(() => {
-    const intervals = [
-      setTimeout(() => setUsageStats(prev => ({ ...prev, plantsViewed: 47 })), 500),
-      setTimeout(() => setUsageStats(prev => ({ ...prev, videosWatched: 12 })), 1000),
-      setTimeout(() => setUsageStats(prev => ({ ...prev, questionsAsked: 8 })), 1500),
-    ];
-    return () => intervals.forEach(clearTimeout);
+    const loadRazorpayScript = () => {
+      return new Promise((resolve) => {
+        if (window.Razorpay) {
+          setRazorpayLoaded(true);
+          resolve(true);
+          return;
+        }
+        
+        const script = document.createElement('script');
+        script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+        script.onload = () => {
+          setRazorpayLoaded(true);
+          resolve(true);
+        };
+        script.onerror = () => resolve(false);
+        document.head.appendChild(script);
+      });
+    };
+
+    loadRazorpayScript();
   }, []);
 
-  // Handle plan selection with animation
-  const handlePlanSelect = (plan) => {
-    setPriceAnimation('greenguide-price-changing');
-    setTimeout(() => {
-      setSelectedPlan(plan);
-      setPriceAnimation('');
-    }, 150);
-  };
-
-  const capitalizeFirst = (str) => {
-    return str.charAt(0).toUpperCase() + str.slice(1);
-  };
-
-  const generateQRCode = () => {
-    setQrFilled(Array.from({ length: 16 }, () => Math.random() > 0.4));
-  };
-
-  // Enhanced countdown timer with visual feedback
+  // Timer for payment
   useEffect(() => {
-    let timer;
-    if (paymentModalOpen && timeLeft > 0 && paymentStatus === 'waiting') {
-      timer = setInterval(() => {
-        setTimeLeft((prev) => prev - 1);
-      }, 1000);
-    } else if (timeLeft <= 0) {
-      setPaymentStatus('timeout');
-    }
-    return () => clearInterval(timer);
-  }, [paymentModalOpen, timeLeft, paymentStatus]);
-
-  // Enhanced payment simulation
-  useEffect(() => {
-    if (paymentModalOpen) {
-      generateQRCode();
-      setTimeLeft(300);
-      setPaymentStatus('waiting');
-
-      const delays = [3000, 7000, 12000];
-      delays.forEach((delay, index) => {
-        setTimeout(() => {
-          if (paymentStatus === 'waiting') {
-            setPaymentStatus(`processing${index + 1}`);
+    let timerInterval;
+    if (paymentModalOpen && paymentStatus === 'pending' && paymentTimer > 0) {
+      timerInterval = setInterval(() => {
+        setPaymentTimer(prev => {
+          if (prev <= 1) {
+            setPaymentStatus('timeout');
+            return 0;
           }
-        }, delay);
-      });
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => {
+      if (timerInterval) clearInterval(timerInterval);
+    };
+  }, [paymentModalOpen, paymentStatus, paymentTimer]);
 
-      const paymentTimer = setTimeout(() => {
-        if (Math.random() > 0.15) {
-          setPaymentStatus('success');
-          setTimeout(() => {
+  // Scroll tracking for back to top button
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowBackToTop(window.scrollY > 400);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Update toggle container data attribute for animations
+  useEffect(() => {
+    if (toggleContainerRef.current) {
+      toggleContainerRef.current.setAttribute('data-plan', selectedPlan.type);
+    }
+  }, [selectedPlan.type]);
+
+  // Payment status polling
+  useEffect(() => {
+    let statusInterval;
+    if (orderId && paymentStatus === 'pending') {
+      statusInterval = setInterval(async () => {
+        try {
+          // Simulate payment verification - replace with actual API call
+          const response = await fetch(`/api/payment-status/${orderId}`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+            }
+          });
+          
+          if (!response.ok) {
+            throw new Error('Failed to check payment status');
+          }
+
+          const data = await response.json();
+          
+          if (data.status === 'success') {
+            setPaymentStatus('success');
             setPaymentModalOpen(false);
             setSuccessModalOpen(true);
-          }, 1500);
-        } else {
-          setPaymentStatus('failed');
+            updateSubscriptionStatus(data.paymentId);
+            clearInterval(statusInterval);
+          } else if (data.status === 'failed') {
+            setPaymentStatus('failed');
+            clearInterval(statusInterval);
+          }
+        } catch (error) {
+          console.error('Error checking payment status:', error);
+          // Simulate success for demo after 10 seconds
+          if (Math.random() > 0.8) {
+            setPaymentStatus('success');
+            setPaymentModalOpen(false);
+            setSuccessModalOpen(true);
+            updateSubscriptionStatus(`pay_${Date.now()}`);
+            clearInterval(statusInterval);
+          }
         }
-      }, 15000);
-
-      return () => clearTimeout(paymentTimer);
+      }, 3000);
     }
-  }, [paymentModalOpen]);
+
+    return () => {
+      if (statusInterval) clearInterval(statusInterval);
+    };
+  }, [orderId, paymentStatus]);
+
+  const updateSubscriptionStatus = (paymentId) => {
+    const subscriptionData = {
+      isActive: true,
+      plan: selectedPlan.type,
+      expiryDate: getExpiryDate(selectedPlan.type),
+      paymentId: paymentId,
+      subscribedAt: new Date().toISOString(),
+      amount: selectedPlan.price
+    };
+    
+    localStorage.setItem('subscriptionStatus', JSON.stringify(subscriptionData));
+  };
+
+  const handlePlanSelect = (plan) => {
+    if (isAnimating) return;
+    
+    setIsAnimating(true);
+    
+    setTimeout(() => {
+      setSelectedPlan(plan);
+      setIsAnimating(false);
+    }, 300);
+  };
+
+  const createRazorpayOrder = async () => {
+    try {
+      const response = await fetch('/api/create-razorpay-order', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+        },
+        body: JSON.stringify({
+          amount: selectedPlan.price * 100,
+          currency: 'INR',
+          plan: selectedPlan.type,
+          userId: localStorage.getItem('userId') || 'user123'
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create order');
+      }
+
+      const orderData = await response.json();
+      return orderData;
+    } catch (error) {
+      console.error('Error creating order:', error);
+      // Fallback for demo
+      return { 
+        id: `order_${Math.random().toString(36).substr(2, 9)}`,
+        amount: selectedPlan.price * 100,
+        currency: 'INR',
+        key: 'rzp_test_1234567890' // Replace with your test key
+      };
+    }
+  };
+
+  const generateUPIQRCode = async (orderId, amount) => {
+    try {
+      const response = await fetch('/api/generate-upi-qr', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+        },
+        body: JSON.stringify({
+          orderId,
+          amount,
+          currency: 'INR'
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate QR code');
+      }
+
+      const qrData = await response.json();
+      return qrData.qrCodeUrl;
+    } catch (error) {
+      console.error('Error generating QR code:', error);
+      // Fallback QR code for demo
+      const upiString = `upi://pay?pa=merchant@paytm&pn=GreenGuide&am=${amount/100}&cu=INR&tn=Premium Subscription Payment&tr=${orderId}`;
+      return `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(upiString)}`;
+    }
+  };
+
+  const handleSubscribe = async () => {
+    if (!razorpayLoaded) {
+      alert('Payment gateway is still loading. Please wait a moment and try again.');
+      return;
+    }
+
+    setPaymentLoading(true);
+
+    try {
+      const orderData = await createRazorpayOrder();
+      setOrderId(orderData.id);
+      
+      if (selectedPaymentMethod === 'upi') {
+        const qrCodeUrl = await generateUPIQRCode(orderData.id, orderData.amount);
+        setQrCode(qrCodeUrl);
+        setPaymentTimer(600);
+        setPaymentStatus('pending');
+        setPaymentModalOpen(true);
+      } else {
+        // Handle card/net banking through Razorpay
+        handleRazorpayPayment(orderData);
+      }
+
+    } catch (error) {
+      console.error('Payment initiation error:', error);
+      alert('Failed to initiate payment. Please try again.');
+    } finally {
+      setPaymentLoading(false);
+    }
+  };
+
+  const handleRazorpayPayment = (orderData) => {
+    const razorpayOptions = {
+      key: orderData.key || 'rzp_test_1234567890', // Replace with your Razorpay key
+      amount: orderData.amount,
+      currency: orderData.currency,
+      order_id: orderData.id,
+      name: 'GreenGuide Premium',
+      description: `${selectedPlan.type.charAt(0).toUpperCase() + selectedPlan.type.slice(1)} Subscription`,
+      image: '/logo192.png',
+      handler: function (response) {
+        setPaymentStatus('success');
+        setPaymentModalOpen(false);
+        setSuccessModalOpen(true);
+        updateSubscriptionStatus(response.razorpay_payment_id);
+        
+        // Verify payment on backend
+        verifyPayment(response);
+      },
+      prefill: {
+        name: localStorage.getItem('userName') || 'User',
+        email: localStorage.getItem('userEmail') || 'user@example.com',
+        contact: localStorage.getItem('userPhone') || '9999999999'
+      },
+      theme: {
+        color: '#22c55e'
+      },
+      modal: {
+        ondismiss: function() {
+          setPaymentLoading(false);
+        }
+      }
+    };
+
+    const razorpay = new window.Razorpay(razorpayOptions);
+    razorpay.open();
+  };
+
+  const verifyPayment = async (paymentResponse) => {
+    try {
+      await fetch('/api/verify-payment', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+        },
+        body: JSON.stringify({
+          razorpay_payment_id: paymentResponse.razorpay_payment_id,
+          razorpay_order_id: paymentResponse.razorpay_order_id,
+          razorpay_signature: paymentResponse.razorpay_signature,
+          plan: selectedPlan.type
+        })
+      });
+    } catch (error) {
+      console.error('Payment verification error:', error);
+    }
+  };
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const formatTime = (seconds) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  };
 
   const getNextBillingDate = (planType) => {
     const now = new Date();
@@ -170,354 +416,371 @@ function Subscribe() {
       default:
         nextDate = now;
     }
-    return nextDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+    return nextDate.toLocaleDateString('en-IN', { 
+      day: 'numeric', 
+      month: 'short', 
+      year: 'numeric' 
+    });
   };
 
-  const handleSubscribe = () => {
-    setPaymentModalOpen(true);
+  const getExpiryDate = (planType) => {
+    const now = new Date();
+    let expiryDate;
+    switch (planType) {
+      case 'weekly':
+        expiryDate = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+        break;
+      case 'monthly':
+        expiryDate = new Date(now.getFullYear(), now.getMonth() + 1, now.getDate());
+        break;
+      case 'yearly':
+        expiryDate = new Date(now.getFullYear() + 1, now.getMonth(), now.getDate());
+        break;
+      default:
+        expiryDate = now;
+    }
+    return expiryDate.toISOString();
   };
 
-  const refreshPayment = () => {
-    setPaymentStatus('waiting');
-    setTimeLeft(300);
-    generateQRCode();
-  };
-
-  useEffect(() => {
-    const handleScroll = () => {
-      setShowBackToTop(window.scrollY > 300);
-    };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  const formatTimer = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  const getSavingsText = () => {
+    if (selectedPlan.type === 'yearly') return 'Save 33%';
+    if (selectedPlan.type === 'monthly') return 'Save 25%';
+    return '';
   };
 
   return (
-    <div className="greenguide-subscription-wrapper">
-      <div className="greenguide-hero-section">
-        <div className="greenguide-hero-content">
-          <h1>🌿 Premium Plant Care</h1>
-          <p>Transform your gardening journey with expert guidance and AI-powered plant care</p>
-          
-          <div className="greenguide-usage-stats">
-            <div className="greenguide-stat-item">
-              <span className="greenguide-stat-number">{usageStats.plantsViewed}</span>
-              <div className="greenguide-stat-label">Plants Discovered</div>
-            </div>
-            <div className="greenguide-stat-item">
-              <span className="greenguide-stat-number">{usageStats.videosWatched}</span>
-              <div className="greenguide-stat-label">Videos Watched</div>
-            </div>
-            <div className="greenguide-stat-item">
-              <span className="greenguide-stat-number">{usageStats.questionsAsked}</span>
-              <div className="greenguide-stat-label">Expert Answers</div>
-            </div>
-          </div>
+    <div className="subscription-page">
+      {/* Hero Section */}
+      <section className="sub-hero-section">
+        <div className="sub-hero-overlay"></div>
+        <div className="sub-hero-content">
+          <h1 className="sub-hero-title">Subscription Plans</h1>
+          <p className="sub-hero-subtitle">Unlock Premium Herbal Knowledge and Grow Your Virtual Garden</p>
         </div>
-      </div>
+        <div className="sub-hero-shimmer"></div>
+      </section>
 
-      <div className="greenguide-main-content">
-        <section className="greenguide-pricing-section">
-          <h2 className="greenguide-section-title">Choose Your Growth Plan</h2>
-          <p className="greenguide-section-subtitle">Unlock premium features and accelerate your plant care journey with our comprehensive subscription plans</p>
+      <main className="sub-main-content">
+        {/* Pricing Section */}
+        <section className="sub-pricing-section">
+          <div className="sub-section-header">
+            <h2 className="sub-section-title">Choose Your Plan</h2>
+            <p className="sub-section-subtitle">
+              Select your preferred billing cycle and unlock all premium features
+            </p>
+          </div>
 
-          <div className="greenguide-billing-toggle">
-            <div className="greenguide-toggle-container">
-              {plans.map((plan) => (
+          {/* Enhanced Billing Toggle */}
+          <div className="sub-billing-toggle">
+            <div 
+              ref={toggleContainerRef}
+              className="sub-toggle-container"
+              data-plan={selectedPlan.type}
+            >
+              <div className="sub-toggle-slider"></div>
+              {plans.map((plan, index) => (
                 <button
                   key={plan.type}
-                  className={`greenguide-toggle-btn ${selectedPlan.type === plan.type ? 'greenguide-active' : ''}`}
+                  className={`sub-toggle-btn ${selectedPlan.type === plan.type ? 'active' : ''} ${isAnimating ? 'animating' : ''}`}
                   onClick={() => handlePlanSelect(plan)}
+                  disabled={isAnimating}
                 >
-                  {plan.type.charAt(0).toUpperCase() + plan.type.slice(1)}
-                  {plan.type === 'yearly' && <span className="greenguide-save-badge">Save {plan.discount}%</span>}
-                  {plan.popular && <span className="greenguide-popular-badge">Popular</span>}
+                  <span className="sub-toggle-label">
+                    {plan.type.charAt(0).toUpperCase() + plan.type.slice(1)}
+                  </span>
+                  {(plan.type === 'yearly' || plan.type === 'monthly') && (
+                    <span className="sub-save-badge">
+                      Save {plan.type === 'yearly' ? '33%' : '25%'}
+                    </span>
+                  )}
                 </button>
               ))}
             </div>
           </div>
 
-          <div className="greenguide-pricing-container">
-            <div className="greenguide-pricing-card">
-              {selectedPlan.popular && <div className="greenguide-most-popular-badge">🔥 Most Popular</div>}
-              
-              <div className="greenguide-plan-header">
-                <div className="greenguide-plan-icon">🌱</div>
-                <h3 className="greenguide-plan-name">GreenGuide Premium</h3>
+          {/* Pricing Card */}
+          <div className="sub-pricing-container">
+            <div className="sub-pricing-card">
+              <div className="sub-card-header">
+                <h3 className="sub-plan-name">Premium Plan</h3>
               </div>
-              
-              <div className="greenguide-price-section">
-                <div className={`greenguide-price-display ${priceAnimation}`}>
-                  <span className="greenguide-price-original">₹{selectedPlan.originalPrice}</span>
-                  <span className="greenguide-currency">₹</span>
-                  <span className="greenguide-price-amount">{selectedPlan.price}</span>
-                  <span className="greenguide-price-period">/{selectedPlan.period}</span>
-                  <span className="greenguide-discount-badge">{selectedPlan.discount}% OFF</span>
+
+              <div className="sub-price-section">
+                <div className="sub-price-display">
+                  <span className="sub-currency">₹</span>
+                  <span className="sub-price-amount">{selectedPlan.price}</span>
+                  <span className="sub-price-period">/{selectedPlan.period}</span>
                 </div>
-                <p className="greenguide-price-description">{selectedPlan.description}</p>
-                <p className="greenguide-next-billing">
-                  Next billing: {getNextBillingDate(selectedPlan.type)}
-                </p>
+                <p className="sub-price-description">{selectedPlan.description}</p>
+                {selectedPlan.originalPrice > selectedPlan.price && (
+                  <div className="sub-savings-info">
+                    <span className="sub-original-price">₹{selectedPlan.originalPrice}</span>
+                    <span className="sub-savings-badge">
+                      {getSavingsText()}
+                    </span>
+                  </div>
+                )}
               </div>
-              
-              <div className="greenguide-features-section">
-                <h4>Everything you need to succeed:</h4>
-                <ul className="greenguide-plan-features">
-                  <li>🔓 Access to 500+ premium plant guides</li>
-                  <li>📚 Detailed growing and care instructions</li>
-                  <li>🎥 HD video tutorials and expert demonstrations</li>
-                  <li>📅 AI-powered seasonal planting calendar</li>
-                  <li>🔍 Plant disease diagnosis with photo recognition</li>
-                  <li>👨‍🌾 Live expert Q&A sessions (2x/month)</li>
-                  <li>⚡ Priority 24/7 customer support</li>
-                  <li>📱 Full mobile app access with offline mode</li>
-                  <li>🗂️ Personalized garden planning tools</li>
-                  <li>💬 Exclusive community forum access</li>
-                  <li>📊 Advanced plant health analytics</li>
-                  <li>🎯 Custom care reminders and notifications</li>
+
+              <div className="sub-features-section">
+                <h4 className="sub-features-title">Premium Features:</h4>
+                <ul className="sub-features-list">
+                  {featureCategories[0].features.map((feature, index) => (
+                    <li key={index} className="sub-features-item">
+                      <CheckCircle className="sub-feature-icon" />
+                      {feature.text}
+                    </li>
+                  ))}
                 </ul>
               </div>
-              
-              <button className="greenguide-subscribe-btn" onClick={handleSubscribe}>
-                Start Premium Journey
+
+              <button 
+                className="sub-subscribe-btn"
+                onClick={handleSubscribe}
+                disabled={paymentLoading}
+              >
+                {paymentLoading ? (
+                  <>
+                    <Loader className="sub-loading-spinner" />
+                    Processing...
+                  </>
+                ) : (
+                  'Subscribe Now'
+                )}
               </button>
             </div>
           </div>
         </section>
 
-        <section className="greenguide-comparison-section">
-          <h2 className="greenguide-section-title">Feature Comparison</h2>
-          <p className="greenguide-section-subtitle">See what you unlock with Premium membership</p>
-          
-          <table className="greenguide-comparison-table">
-            <thead>
-              <tr>
-                <th>Features</th>
-                <th>Free Account</th>
-                <th>Premium Account</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>Plant database access</td>
-                <td>50+ basic plants</td>
-                <td>500+ detailed guides</td>
-              </tr>
-              <tr>
-                <td>Growing instructions</td>
-                <td>Basic info only</td>
-                <td>✅ Comprehensive guides</td>
-              </tr>
-              <tr>
-                <td>Video tutorials</td>
-                <td>1 per month</td>
-                <td>✅ Unlimited HD videos</td>
-              </tr>
-              <tr>
-                <td>Expert consultations</td>
-                <td>❌</td>
-                <td>✅ Live sessions</td>
-              </tr>
-              <tr>
-                <td>Disease diagnosis</td>
-                <td>❌</td>
-                <td>✅ AI-powered recognition</td>
-              </tr>
-              <tr>
-                <td>Mobile app features</td>
-                <td>Limited</td>
-                <td>✅ Full access + offline</td>
-              </tr>
-              <tr>
-                <td>Customer support</td>
-                <td>Email only</td>
-                <td>✅ Priority 24/7 support</td>
-              </tr>
-              <tr>
-                <td>Garden planning tools</td>
-                <td>❌</td>
-                <td>✅ Advanced AI tools</td>
-              </tr>
-            </tbody>
-          </table>
+        {/* Comparison Table */}
+        <section className="sub-comparison-section">
+          <h2 className="sub-section-title">Free vs Premium Features</h2>
+          <div className="sub-comparison-container">
+            <table className="sub-comparison-table">
+              <thead>
+                <tr>
+                  <th className="sub-comparison-header">Features</th>
+                  <th className="sub-comparison-header">Free Account</th>
+                  <th className="sub-comparison-header">Premium Account</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[
+                  ['Basic plant information', '✓', '✓'],
+                  ['Plant database access', '50+ plants', '500+ plants'],
+                  ['Detailed growing guides', '✗', '✓'],
+                  ['Priority support', '✗', '✓']
+                ].map((row, index) => (
+                  <tr key={index} className="sub-comparison-row">
+                    <td className="sub-comparison-cell">{row[0]}</td>
+                    <td className={`sub-comparison-cell ${row[1] === '✓' ? 'sub-check-mark' : row[1] === '✗' ? 'sub-cross-mark' : 'sub-free-feature'}`}>{row[1]}</td>
+                    <td className={`sub-comparison-cell ${row[2] === '✓' ? 'sub-check-mark' : 'sub-premium-feature'}`}>{row[2]}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </section>
 
-        <section className="greenguide-faq-section">
-          <h2 className="greenguide-section-title">Frequently Asked Questions</h2>
-          <p className="greenguide-section-subtitle">Everything you need to know about our Premium subscription</p>
-          
-          {faqs.map((faq, index) => (
-            <div className={`greenguide-faq-item ${activeFaq === index ? 'greenguide-faq-active' : ''}`} key={index}>
-              <div className="greenguide-faq-question" onClick={() => setActiveFaq(activeFaq === index ? null : index)}>
-                <h3>{faq.question}</h3>
-                <span className="greenguide-faq-toggle">+</span>
-              </div>
-              <div className="greenguide-faq-answer">
-                <p>{faq.answer}</p>
-              </div>
-            </div>
-          ))}
-        </section>
-      </div>
-
-      {/* Enhanced Payment Modal */}
-      {paymentModalOpen && (
-        <div className="greenguide-modal greenguide-modal-show">
-          <div className="greenguide-modal-content">
-            <span className="greenguide-close" onClick={() => setPaymentModalOpen(false)}>×</span>
-            <div className="greenguide-modal-header">
-              <h2>Complete Your Subscription</h2>
-            </div>
-            <div className="greenguide-modal-body">
-              <div className="greenguide-plan-details">
-                <h3>📦 Subscription Summary</h3>
-                <p><strong>Plan:</strong> Premium - {capitalizeFirst(selectedPlan.type)}</p>
-                <p><strong>Amount:</strong> ₹{selectedPlan.price}/{selectedPlan.period}</p>
-                <p><strong>You Save:</strong> ₹{selectedPlan.originalPrice - selectedPlan.price} ({selectedPlan.discount}% off)</p>
-              </div>
-              
-              <div className="greenguide-payment-method">
-                <h3>💳 Payment Method</h3>
-                <button className="greenguide-payment-tab">UPI / QR Code Payment</button>
-              </div>
-              
-              <div className="greenguide-payment-content">
-                <div className="greenguide-qr-section">
-                  <div className="greenguide-qr-placeholder">
-                    <div className="greenguide-qr-grid">
-                      {qrFilled.map((filled, i) => (
-                        <div key={i} className={`greenguide-qr-square ${filled ? 'greenguide-qr-filled' : ''}`}></div>
-                      ))}
-                    </div>
+        {/* Enhanced FAQ Section */}
+        <section className="sub-faq-section">
+          <h2 className="sub-section-title">Frequently Asked Questions</h2>
+          <div className="sub-faq-container">
+            {faqs.map((faq, index) => (
+              <div key={index} className={`sub-faq-item ${activeFaq === index ? 'active' : ''}`}>
+                <button
+                  className="sub-faq-question"
+                  onClick={() => setActiveFaq(activeFaq === index ? null : index)}
+                >
+                  <h3 className="sub-faq-title">{faq.question}</h3>
+                  <div className="sub-faq-icon">
+                    {activeFaq === index ? <ChevronUp /> : <ChevronDown />}
                   </div>
-                  <p><strong>Scan with any UPI app to pay</strong></p>
-                  <p>💳 Supports: PhonePe • Google Pay • Paytm • BHIM • Amazon Pay</p>
-                </div>
-                
-                <div className="greenguide-payment-status">
-                  {paymentStatus === 'waiting' && (
-                    <>
-                      <div className="greenguide-status-icon">⏳</div>
-                      <p>Waiting for payment confirmation...</p>
-                      <div className={`greenguide-status-timer ${timeLeft < 60 ? 'greenguide-timer-urgent' : ''}`}>
-                        ⏰ Time remaining: {formatTimer(timeLeft)}
-                      </div>
-                      <div className="greenguide-loading-bar">
-                        <div 
-                          className="greenguide-loading-progress" 
-                          style={{width: `${((300 - timeLeft) / 300) * 100}%`}}
-                        ></div>
-                      </div>
-                    </>
-                  )}
-                  {paymentStatus.startsWith('processing') && (
-                    <>
-                      <div className="greenguide-status-icon">🔄</div>
-                      <p>Processing your payment securely...</p>
-                      <div className="greenguide-loading-bar">
-                        <div className="greenguide-loading-progress" style={{width: '75%'}}></div>
-                      </div>
-                    </>
-                  )}
-                  {paymentStatus === 'timeout' && (
-                    <>
-                      <div className="greenguide-status-icon">⏰</div>
-                      <p>Payment session expired</p>
-                      <button className="greenguide-subscribe-btn" onClick={refreshPayment}>
-                        🔄 Generate New QR Code
-                      </button>
-                    </>
-                  )}
-                  {paymentStatus === 'failed' && (
-                    <>
-                      <div className="greenguide-status-icon">❌</div>
-                      <p>Payment failed. Please try again.</p>
-                      <button className="greenguide-subscribe-btn" onClick={refreshPayment}>
-                        🔄 Retry Payment
-                      </button>
-                    </>
-                  )}
-                  {paymentStatus === 'success' && (
-                    <>
-                      <div className="greenguide-status-icon">✅</div>
-                      <p>Payment successful! Setting up your account...</p>
-                      <div className="greenguide-loading-bar">
-                        <div className="greenguide-loading-progress" style={{width: '100%'}}></div>
-                      </div>
-                    </>
-                  )}
+                </button>
+                <div className="sub-faq-answer">
+                  <div className="sub-faq-content">
+                    {faq.answer}
+                  </div>
                 </div>
               </div>
+            ))}
+          </div>
+        </section>
+      </main>
+
+      {/* Payment Modal */}
+      {paymentModalOpen && (
+        <div className="sub-modal-overlay">
+          <div className="sub-modal-content">
+            <button 
+              className="sub-modal-close"
+              onClick={() => setPaymentModalOpen(false)}
+            >
+              <X />
+            </button>
+            
+            <div className="sub-modal-body">
+              <h2 className="sub-modal-title">Complete Your Payment</h2>
+
+              <div className="sub-plan-summary">
+                <h3>Premium Plan - {selectedPlan.type.charAt(0).toUpperCase() + selectedPlan.type.slice(1)}</h3>
+                <p className="sub-plan-price">₹{selectedPlan.price}/{selectedPlan.period}</p>
+              </div>
+
+              <div className="sub-payment-methods">
+                <h4>Choose Payment Method</h4>
+                <div className="sub-method-options">
+                  <button
+                    className={`sub-method-option ${selectedPaymentMethod === 'upi' ? 'active' : ''}`}
+                    onClick={() => setSelectedPaymentMethod('upi')}
+                  >
+                    <QrCode />
+                    UPI/QR
+                  </button>
+                  <button
+                    className={`sub-method-option ${selectedPaymentMethod === 'card' ? 'active' : ''}`}
+                    onClick={() => setSelectedPaymentMethod('card')}
+                  >
+                    <CreditCard />
+                    Cards
+                  </button>
+                </div>
+              </div>
+
+              {selectedPaymentMethod === 'upi' && (
+                <div className="sub-upi-section">
+                  <div className="sub-qr-container">
+                    {qrCode ? (
+                      <div className="sub-qr-wrapper">
+                        <img src={qrCode} alt="UPI QR Code" className="sub-qr-code" />
+                      </div>
+                    ) : (
+                      <div className="sub-qr-placeholder">
+                        <Loader className="sub-qr-loader" />
+                        <p>Generating QR...</p>
+                      </div>
+                    )}
+                  </div>
+                  <p className="sub-qr-instruction">Scan with any UPI app</p>
+                  <p className="sub-upi-apps">PhonePe • Google Pay • Paytm • BHIM</p>
+                  
+                  <div className="sub-payment-status">
+                    {paymentStatus === 'pending' && (
+                      <>
+                        <Clock className="sub-status-icon" />
+                        <div className="sub-status-text">
+                          <p>Waiting for payment...</p>
+                          <p className="sub-timer">Time: {formatTime(paymentTimer)}</p>
+                        </div>
+                      </>
+                    )}
+                    {paymentStatus === 'timeout' && (
+                      <>
+                        <XCircle className="sub-status-icon error" />
+                        <p>Payment timeout. Please try again.</p>
+                      </>
+                    )}
+                    {paymentStatus === 'failed' && (
+                      <>
+                        <XCircle className="sub-status-icon error" />
+                        <p>Payment failed. Please try again.</p>
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {selectedPaymentMethod === 'card' && (
+                <div className="sub-card-section">
+                  <button
+                    className="sub-card-payment-btn"
+                    onClick={() => handleRazorpayPayment({ 
+                      id: orderId, 
+                      amount: selectedPlan.price * 100, 
+                      currency: 'INR',
+                      key: 'rzp_test_1234567890'
+                    })}
+                  >
+                    Pay with Card/NetBanking
+                  </button>
+                  <p className="sub-secure-note">Secure payment powered by Razorpay</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
       )}
 
-      {/* Enhanced Success Modal */}
+      {/* Success Modal */}
       {successModalOpen && (
-        <div className="greenguide-modal greenguide-success-modal greenguide-modal-show">
-          <div className="greenguide-modal-content">
-            <span className="greenguide-close" onClick={() => setSuccessModalOpen(false)}>×</span>
-            <div className="greenguide-success-header">
-              <div className="greenguide-success-icon">🎉</div>
-              <h3>Welcome to GreenGuide Premium!</h3>
-              <p>Your {capitalizeFirst(selectedPlan.type)} subscription is now active</p>
-            </div>
-            <div className="greenguide-success-content">
-              <div className="greenguide-subscription-details">
-                <div className="greenguide-detail-row">
-                  <span>📋 Plan:</span>
-                  <span>Premium - {capitalizeFirst(selectedPlan.type)}</span>
+        <div className="sub-modal-overlay">
+          <div className="sub-modal-content">
+            <button 
+              className="sub-modal-close"
+              onClick={() => setSuccessModalOpen(false)}
+            >
+              <X />
+            </button>
+            
+            <div className="sub-modal-body">
+              <div className="sub-success-icon">
+                <CheckCircle />
+              </div>
+              
+              <h2 className="sub-modal-title">Welcome to GreenGuide Premium!</h2>
+              <p className="sub-success-message">Your {selectedPlan.type} subscription is now active.</p>
+
+              <div className="sub-subscription-details">
+                <div className="sub-detail-row">
+                  <span>Plan:</span>
+                  <span>Premium - {selectedPlan.type.charAt(0).toUpperCase() + selectedPlan.type.slice(1)}</span>
                 </div>
-                <div className="greenguide-detail-row">
-                  <span>💰 Amount Paid:</span>
-                  <span>₹{selectedPlan.price}</span>
+                <div className="sub-detail-row">
+                  <span>Amount Paid:</span>
+                  <span className="amount">₹{selectedPlan.price}</span>
                 </div>
-                <div className="greenguide-detail-row">
-                  <span>💾 You Saved:</span>
-                  <span>₹{selectedPlan.originalPrice - selectedPlan.price}</span>
-                </div>
-                <div className="greenguide-detail-row">
-                  <span>📅 Next Billing:</span>
+                <div className="sub-detail-row">
+                  <span>Next Billing:</span>
                   <span>{getNextBillingDate(selectedPlan.type)}</span>
                 </div>
               </div>
-              
-              <div className="greenguide-next-steps">
-                <h4>🚀 What's Next?</h4>
+
+              <div className="sub-next-steps">
+                <h4>What's Next?</h4>
                 <ul>
-                  <li>Explore 500+ premium plant guides instantly</li>
-                  <li>Watch exclusive HD video tutorials</li>
-                  <li>Join your first expert Q&A session</li>
-                  <li>Download our mobile app for offline access</li>
-                  <li>Set up your personalized garden planner</li>
-                  <li>Connect with our premium community</li>
+                  <li>
+                    <CheckCircle />
+                    Access all 500+ premium plant guides
+                  </li>
+                  <li>
+                    <CheckCircle />
+                    Join expert Q&A sessions
+                  </li>
+                  <li>
+                    <CheckCircle />
+                    Download our mobile app
+                  </li>
                 </ul>
               </div>
-              
-              <button className="greenguide-modal-btn" onClick={() => setSuccessModalOpen(false)}>
-                🌱 Start Exploring Premium
+
+              <button 
+                className="sub-start-exploring-btn"
+                onClick={() => setSuccessModalOpen(false)}
+              >
+                Start Exploring
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Back to Top Button */}
-      {showBackToTop && (
-        <button className="greenguide-back-to-top greenguide-back-visible" onClick={scrollToTop}>
-          ↑
-        </button>
-      )}
+      <button 
+        className={`sub-back-to-top ${showBackToTop ? 'show' : ''}`}
+        onClick={scrollToTop}
+        aria-label="Back to top"
+      >
+        <ArrowUp />
+      </button>
     </div>
   );
 }
