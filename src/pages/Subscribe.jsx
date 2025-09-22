@@ -1,9 +1,8 @@
-// src/pages/Subscribe.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import { 
-  FileText, Users, Shield, Globe, Headphones, MessageCircle, 
+  FileText, Users, Shield, Globe, 
   Bell, Smartphone, ArrowUp, X, Clock, QrCode, ChevronDown, 
-  ChevronUp, Loader, CheckCircle, XCircle, CreditCard
+  ChevronUp, Loader, CheckCircle, XCircle
 } from 'lucide-react';
 import '../styles/sub.css';
 
@@ -52,19 +51,12 @@ function Subscribe() {
     },
   ];
 
-  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
-  const [qrCode, setQrCode] = useState(null);
-  const [paymentStatus, setPaymentStatus] = useState('pending');
-  const [orderId, setOrderId] = useState(null);
-  const [successModalOpen, setSuccessModalOpen] = useState(false);
   const [activeFaq, setActiveFaq] = useState(null);
   const [showBackToTop, setShowBackToTop] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [paymentLoading, setPaymentLoading] = useState(false);
-  const [paymentTimer, setPaymentTimer] = useState(600);
   const [isAnimating, setIsAnimating] = useState(false);
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('upi');
   const [razorpayLoaded, setRazorpayLoaded] = useState(false);
+  const [successModalOpen, setSuccessModalOpen] = useState(false);
   
   const toggleContainerRef = useRef(null);
 
@@ -130,25 +122,6 @@ function Subscribe() {
     loadRazorpayScript();
   }, []);
 
-  // Timer for payment
-  useEffect(() => {
-    let timerInterval;
-    if (paymentModalOpen && paymentStatus === 'pending' && paymentTimer > 0) {
-      timerInterval = setInterval(() => {
-        setPaymentTimer(prev => {
-          if (prev <= 1) {
-            setPaymentStatus('timeout');
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    }
-    return () => {
-      if (timerInterval) clearInterval(timerInterval);
-    };
-  }, [paymentModalOpen, paymentStatus, paymentTimer]);
-
   // Scroll tracking for back to top button
   useEffect(() => {
     const handleScroll = () => {
@@ -164,56 +137,6 @@ function Subscribe() {
       toggleContainerRef.current.setAttribute('data-plan', selectedPlan.type);
     }
   }, [selectedPlan.type]);
-
-  // Payment status polling
-  useEffect(() => {
-    let statusInterval;
-    if (orderId && paymentStatus === 'pending') {
-      statusInterval = setInterval(async () => {
-        try {
-          // Simulate payment verification - replace with actual API call
-          const response = await fetch(`/api/payment-status/${orderId}`, {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-            }
-          });
-          
-          if (!response.ok) {
-            throw new Error('Failed to check payment status');
-          }
-
-          const data = await response.json();
-          
-          if (data.status === 'success') {
-            setPaymentStatus('success');
-            setPaymentModalOpen(false);
-            setSuccessModalOpen(true);
-            updateSubscriptionStatus(data.paymentId);
-            clearInterval(statusInterval);
-          } else if (data.status === 'failed') {
-            setPaymentStatus('failed');
-            clearInterval(statusInterval);
-          }
-        } catch (error) {
-          console.error('Error checking payment status:', error);
-          // Simulate success for demo after 10 seconds
-          if (Math.random() > 0.8) {
-            setPaymentStatus('success');
-            setPaymentModalOpen(false);
-            setSuccessModalOpen(true);
-            updateSubscriptionStatus(`pay_${Date.now()}`);
-            clearInterval(statusInterval);
-          }
-        }
-      }, 3000);
-    }
-
-    return () => {
-      if (statusInterval) clearInterval(statusInterval);
-    };
-  }, [orderId, paymentStatus]);
 
   const updateSubscriptionStatus = (paymentId) => {
     const subscriptionData = {
@@ -239,6 +162,9 @@ function Subscribe() {
     }, 300);
   };
 
+  // ==================== RAZORPAY INTEGRATION AREA ====================
+  
+  // Step 1: Create Razorpay Order on your backend
   const createRazorpayOrder = async () => {
     try {
       const response = await fetch('/api/create-razorpay-order', {
@@ -248,7 +174,7 @@ function Subscribe() {
           'Authorization': `Bearer ${localStorage.getItem('authToken')}`
         },
         body: JSON.stringify({
-          amount: selectedPlan.price * 100,
+          amount: selectedPlan.price * 100, // Amount in paise
           currency: 'INR',
           plan: selectedPlan.type,
           userId: localStorage.getItem('userId') || 'user123'
@@ -263,92 +189,34 @@ function Subscribe() {
       return orderData;
     } catch (error) {
       console.error('Error creating order:', error);
-      // Fallback for demo
+      
+      // Fallback for demo purposes - REMOVE THIS IN PRODUCTION
       return { 
         id: `order_${Math.random().toString(36).substr(2, 9)}`,
         amount: selectedPlan.price * 100,
         currency: 'INR',
-        key: 'rzp_test_1234567890' // Replace with your test key
+        key: 'YOUR_RAZORPAY_KEY_HERE' // Replace with your actual key
       };
     }
   };
 
-  const generateUPIQRCode = async (orderId, amount) => {
-    try {
-      const response = await fetch('/api/generate-upi-qr', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-        },
-        body: JSON.stringify({
-          orderId,
-          amount,
-          currency: 'INR'
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to generate QR code');
-      }
-
-      const qrData = await response.json();
-      return qrData.qrCodeUrl;
-    } catch (error) {
-      console.error('Error generating QR code:', error);
-      // Fallback QR code for demo
-      const upiString = `upi://pay?pa=merchant@paytm&pn=GreenGuide&am=${amount/100}&cu=INR&tn=Premium Subscription Payment&tr=${orderId}`;
-      return `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(upiString)}`;
-    }
-  };
-
-  const handleSubscribe = async () => {
-    if (!razorpayLoaded) {
-      alert('Payment gateway is still loading. Please wait a moment and try again.');
-      return;
-    }
-
-    setPaymentLoading(true);
-
-    try {
-      const orderData = await createRazorpayOrder();
-      setOrderId(orderData.id);
-      
-      if (selectedPaymentMethod === 'upi') {
-        const qrCodeUrl = await generateUPIQRCode(orderData.id, orderData.amount);
-        setQrCode(qrCodeUrl);
-        setPaymentTimer(600);
-        setPaymentStatus('pending');
-        setPaymentModalOpen(true);
-      } else {
-        // Handle card/net banking through Razorpay
-        handleRazorpayPayment(orderData);
-      }
-
-    } catch (error) {
-      console.error('Payment initiation error:', error);
-      alert('Failed to initiate payment. Please try again.');
-    } finally {
-      setPaymentLoading(false);
-    }
-  };
-
+  // Step 2: Handle Razorpay Payment
   const handleRazorpayPayment = (orderData) => {
     const razorpayOptions = {
-      key: orderData.key || 'rzp_test_1234567890', // Replace with your Razorpay key
+      key: orderData.key || 'YOUR_RAZORPAY_KEY_HERE', // Replace with your Razorpay key ID
       amount: orderData.amount,
       currency: orderData.currency,
       order_id: orderData.id,
       name: 'GreenGuide Premium',
       description: `${selectedPlan.type.charAt(0).toUpperCase() + selectedPlan.type.slice(1)} Subscription`,
-      image: '/logo192.png',
+      image: '/logo192.png', // Your app logo
       handler: function (response) {
-        setPaymentStatus('success');
-        setPaymentModalOpen(false);
-        setSuccessModalOpen(true);
+        // Payment successful
+        console.log('Payment successful:', response);
         updateSubscriptionStatus(response.razorpay_payment_id);
+        setSuccessModalOpen(true);
         
-        // Verify payment on backend
+        // Step 3: Verify payment on backend (important for security)
         verifyPayment(response);
       },
       prefill: {
@@ -357,22 +225,37 @@ function Subscribe() {
         contact: localStorage.getItem('userPhone') || '9999999999'
       },
       theme: {
-        color: '#22c55e'
+        color: '#22c55e' // Your brand color
       },
       modal: {
         ondismiss: function() {
+          // Payment cancelled by user
+          console.log('Payment cancelled by user');
           setPaymentLoading(false);
         }
+      },
+      retry: {
+        enabled: true,
+        max_count: 3
       }
     };
 
     const razorpay = new window.Razorpay(razorpayOptions);
+    
+    // Handle payment failure
+    razorpay.on('payment.failed', function (response){
+      console.log('Payment failed:', response.error);
+      alert('Payment failed: ' + response.error.description);
+      setPaymentLoading(false);
+    });
+
     razorpay.open();
   };
 
+  // Step 4: Verify payment on backend (CRITICAL for security)
   const verifyPayment = async (paymentResponse) => {
     try {
-      await fetch('/api/verify-payment', {
+      const response = await fetch('/api/verify-payment', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -385,19 +268,48 @@ function Subscribe() {
           plan: selectedPlan.type
         })
       });
+
+      if (!response.ok) {
+        throw new Error('Payment verification failed');
+      }
+
+      const data = await response.json();
+      console.log('Payment verified:', data);
+      
     } catch (error) {
       console.error('Payment verification error:', error);
+      // Handle verification failure - you might want to show a warning
+      // but don't revoke access immediately as payment might still be valid
     }
   };
 
-  const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+  // Main subscribe handler
+  const handleSubscribe = async () => {
+    if (!razorpayLoaded) {
+      alert('Payment gateway is still loading. Please wait a moment and try again.');
+      return;
+    }
+
+    setPaymentLoading(true);
+
+    try {
+      // Step 1: Create order on backend
+      const orderData = await createRazorpayOrder();
+      
+      // Step 2: Open Razorpay checkout
+      handleRazorpayPayment(orderData);
+
+    } catch (error) {
+      console.error('Payment initiation error:', error);
+      alert('Failed to initiate payment. Please try again.');
+      setPaymentLoading(false);
+    }
   };
 
-  const formatTime = (seconds) => {
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  // ==================== END RAZORPAY INTEGRATION AREA ====================
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const getNextBillingDate = (planType) => {
@@ -449,47 +361,47 @@ function Subscribe() {
   };
 
   return (
-    <div className="subscription-page">
+    <div className="subscription-page-wrapper">
       {/* Hero Section */}
-      <section className="sub-hero-section">
-        <div className="sub-hero-overlay"></div>
-        <div className="sub-hero-content">
-          <h1 className="sub-hero-title">Subscription Plans</h1>
-          <p className="sub-hero-subtitle">Unlock Premium Herbal Knowledge and Grow Your Virtual Garden</p>
+      <section className="subscription-hero-section">
+        <div className="subscription-hero-overlay"></div>
+        <div className="subscription-hero-content">
+          <h1 className="subscription-hero-title">Subscription Plans</h1>
+          <p className="subscription-hero-subtitle">Unlock Premium Herbal Knowledge and Grow Your Virtual Garden</p>
         </div>
-        <div className="sub-hero-shimmer"></div>
+        <div className="subscription-hero-shimmer"></div>
       </section>
 
-      <main className="sub-main-content">
+      <main className="subscription-main-content">
         {/* Pricing Section */}
-        <section className="sub-pricing-section">
-          <div className="sub-section-header">
-            <h2 className="sub-section-title">Choose Your Plan</h2>
-            <p className="sub-section-subtitle">
+        <section className="subscription-pricing-section">
+          <div className="subscription-section-header">
+            <h2 className="subscription-section-title">Choose Your Plan</h2>
+            <p className="subscription-section-subtitle">
               Select your preferred billing cycle and unlock all premium features
             </p>
           </div>
 
           {/* Enhanced Billing Toggle */}
-          <div className="sub-billing-toggle">
+          <div className="subscription-billing-toggle">
             <div 
               ref={toggleContainerRef}
-              className="sub-toggle-container"
+              className="subscription-toggle-container"
               data-plan={selectedPlan.type}
             >
-              <div className="sub-toggle-slider"></div>
+              <div className="subscription-toggle-slider"></div>
               {plans.map((plan, index) => (
                 <button
                   key={plan.type}
-                  className={`sub-toggle-btn ${selectedPlan.type === plan.type ? 'active' : ''} ${isAnimating ? 'animating' : ''}`}
+                  className={`subscription-toggle-btn ${selectedPlan.type === plan.type ? 'active' : ''} ${isAnimating ? 'animating' : ''}`}
                   onClick={() => handlePlanSelect(plan)}
                   disabled={isAnimating}
                 >
-                  <span className="sub-toggle-label">
+                  <span className="subscription-toggle-label">
                     {plan.type.charAt(0).toUpperCase() + plan.type.slice(1)}
                   </span>
                   {(plan.type === 'yearly' || plan.type === 'monthly') && (
-                    <span className="sub-save-badge">
+                    <span className="subscription-save-badge">
                       Save {plan.type === 'yearly' ? '33%' : '25%'}
                     </span>
                   )}
@@ -499,35 +411,35 @@ function Subscribe() {
           </div>
 
           {/* Pricing Card */}
-          <div className="sub-pricing-container">
-            <div className="sub-pricing-card">
-              <div className="sub-card-header">
-                <h3 className="sub-plan-name">Premium Plan</h3>
+          <div className="subscription-pricing-container">
+            <div className="subscription-pricing-card">
+              <div className="subscription-card-header">
+                <h3 className="subscription-plan-name">Premium Plan</h3>
               </div>
 
-              <div className="sub-price-section">
-                <div className="sub-price-display">
-                  <span className="sub-currency">₹</span>
-                  <span className="sub-price-amount">{selectedPlan.price}</span>
-                  <span className="sub-price-period">/{selectedPlan.period}</span>
+              <div className="subscription-price-section">
+                <div className="subscription-price-display">
+                  <span className="subscription-currency">₹</span>
+                  <span className="subscription-price-amount">{selectedPlan.price}</span>
+                  <span className="subscription-price-period">/{selectedPlan.period}</span>
                 </div>
-                <p className="sub-price-description">{selectedPlan.description}</p>
+                <p className="subscription-price-description">{selectedPlan.description}</p>
                 {selectedPlan.originalPrice > selectedPlan.price && (
-                  <div className="sub-savings-info">
-                    <span className="sub-original-price">₹{selectedPlan.originalPrice}</span>
-                    <span className="sub-savings-badge">
+                  <div className="subscription-savings-info">
+                    <span className="subscription-original-price">₹{selectedPlan.originalPrice}</span>
+                    <span className="subscription-savings-badge">
                       {getSavingsText()}
                     </span>
                   </div>
                 )}
               </div>
 
-              <div className="sub-features-section">
-                <h4 className="sub-features-title">Premium Features:</h4>
-                <ul className="sub-features-list">
+              <div className="subscription-features-section">
+                <h4 className="subscription-features-title">Premium Features:</h4>
+                <ul className="subscription-features-list">
                   {featureCategories[0].features.map((feature, index) => (
-                    <li key={index} className="sub-features-item">
-                      <CheckCircle className="sub-feature-icon" />
+                    <li key={index} className="subscription-features-item">
+                      <CheckCircle className="subscription-feature-icon" />
                       {feature.text}
                     </li>
                   ))}
@@ -535,13 +447,13 @@ function Subscribe() {
               </div>
 
               <button 
-                className="sub-subscribe-btn"
+                className="subscription-subscribe-btn"
                 onClick={handleSubscribe}
                 disabled={paymentLoading}
               >
                 {paymentLoading ? (
                   <>
-                    <Loader className="sub-loading-spinner" />
+                    <Loader className="subscription-loading-spinner" />
                     Processing...
                   </>
                 ) : (
@@ -553,15 +465,15 @@ function Subscribe() {
         </section>
 
         {/* Comparison Table */}
-        <section className="sub-comparison-section">
-          <h2 className="sub-section-title">Free vs Premium Features</h2>
-          <div className="sub-comparison-container">
-            <table className="sub-comparison-table">
+        <section className="subscription-comparison-section">
+          <h2 className="subscription-section-title">Free vs Premium Features</h2>
+          <div className="subscription-comparison-container">
+            <table className="subscription-comparison-table">
               <thead>
                 <tr>
-                  <th className="sub-comparison-header">Features</th>
-                  <th className="sub-comparison-header">Free Account</th>
-                  <th className="sub-comparison-header">Premium Account</th>
+                  <th className="subscription-comparison-header">Features</th>
+                  <th className="subscription-comparison-header">Free Account</th>
+                  <th className="subscription-comparison-header">Premium Account</th>
                 </tr>
               </thead>
               <tbody>
@@ -571,10 +483,10 @@ function Subscribe() {
                   ['Detailed growing guides', '✗', '✓'],
                   ['Priority support', '✗', '✓']
                 ].map((row, index) => (
-                  <tr key={index} className="sub-comparison-row">
-                    <td className="sub-comparison-cell">{row[0]}</td>
-                    <td className={`sub-comparison-cell ${row[1] === '✓' ? 'sub-check-mark' : row[1] === '✗' ? 'sub-cross-mark' : 'sub-free-feature'}`}>{row[1]}</td>
-                    <td className={`sub-comparison-cell ${row[2] === '✓' ? 'sub-check-mark' : 'sub-premium-feature'}`}>{row[2]}</td>
+                  <tr key={index} className="subscription-comparison-row">
+                    <td className="subscription-comparison-cell">{row[0]}</td>
+                    <td className={`subscription-comparison-cell ${row[1] === '✓' ? 'subscription-check-mark' : row[1] === '✗' ? 'subscription-cross-mark' : 'subscription-free-feature'}`}>{row[1]}</td>
+                    <td className={`subscription-comparison-cell ${row[2] === '✓' ? 'subscription-check-mark' : 'subscription-premium-feature'}`}>{row[2]}</td>
                   </tr>
                 ))}
               </tbody>
@@ -583,24 +495,22 @@ function Subscribe() {
         </section>
 
         {/* Enhanced FAQ Section */}
-        <section className="sub-faq-section">
-          <h2 className="sub-section-title">Frequently Asked Questions</h2>
-          <div className="sub-faq-container">
+        <section className="subscription-faq-section">
+          <h2 className="subscription-section-title">Frequently Asked Questions</h2>
+          <div className="subscription-faq-container">
             {faqs.map((faq, index) => (
-              <div key={index} className={`sub-faq-item ${activeFaq === index ? 'active' : ''}`}>
-                <button
-                  className="sub-faq-question"
+              <div key={index} className={`subscription-faq-item ${activeFaq === index ? 'active' : ''}`}>
+                <div
+                  className="subscription-faq-question"
                   onClick={() => setActiveFaq(activeFaq === index ? null : index)}
                 >
-                  <h3 className="sub-faq-title">{faq.question}</h3>
-                  <div className="sub-faq-icon">
+                  <h4 className="subscription-faq-title">{faq.question}</h4>
+                  <div className="subscription-faq-icon">
                     {activeFaq === index ? <ChevronUp /> : <ChevronDown />}
                   </div>
-                </button>
-                <div className="sub-faq-answer">
-                  <div className="sub-faq-content">
-                    {faq.answer}
-                  </div>
+                </div>
+                <div className="subscription-faq-answer">
+                  <p className="subscription-faq-content">{faq.answer}</p>
                 </div>
               </div>
             ))}
@@ -608,144 +518,41 @@ function Subscribe() {
         </section>
       </main>
 
-      {/* Payment Modal */}
-      {paymentModalOpen && (
-        <div className="sub-modal-overlay">
-          <div className="sub-modal-content">
-            <button 
-              className="sub-modal-close"
-              onClick={() => setPaymentModalOpen(false)}
-            >
-              <X />
-            </button>
-            
-            <div className="sub-modal-body">
-              <h2 className="sub-modal-title">Complete Your Payment</h2>
-
-              <div className="sub-plan-summary">
-                <h3>Premium Plan - {selectedPlan.type.charAt(0).toUpperCase() + selectedPlan.type.slice(1)}</h3>
-                <p className="sub-plan-price">₹{selectedPlan.price}/{selectedPlan.period}</p>
-              </div>
-
-              <div className="sub-payment-methods">
-                <h4>Choose Payment Method</h4>
-                <div className="sub-method-options">
-                  <button
-                    className={`sub-method-option ${selectedPaymentMethod === 'upi' ? 'active' : ''}`}
-                    onClick={() => setSelectedPaymentMethod('upi')}
-                  >
-                    <QrCode />
-                    UPI/QR
-                  </button>
-                  <button
-                    className={`sub-method-option ${selectedPaymentMethod === 'card' ? 'active' : ''}`}
-                    onClick={() => setSelectedPaymentMethod('card')}
-                  >
-                    <CreditCard />
-                    Cards
-                  </button>
-                </div>
-              </div>
-
-              {selectedPaymentMethod === 'upi' && (
-                <div className="sub-upi-section">
-                  <div className="sub-qr-container">
-                    {qrCode ? (
-                      <div className="sub-qr-wrapper">
-                        <img src={qrCode} alt="UPI QR Code" className="sub-qr-code" />
-                      </div>
-                    ) : (
-                      <div className="sub-qr-placeholder">
-                        <Loader className="sub-qr-loader" />
-                        <p>Generating QR...</p>
-                      </div>
-                    )}
-                  </div>
-                  <p className="sub-qr-instruction">Scan with any UPI app</p>
-                  <p className="sub-upi-apps">PhonePe • Google Pay • Paytm • BHIM</p>
-                  
-                  <div className="sub-payment-status">
-                    {paymentStatus === 'pending' && (
-                      <>
-                        <Clock className="sub-status-icon" />
-                        <div className="sub-status-text">
-                          <p>Waiting for payment...</p>
-                          <p className="sub-timer">Time: {formatTime(paymentTimer)}</p>
-                        </div>
-                      </>
-                    )}
-                    {paymentStatus === 'timeout' && (
-                      <>
-                        <XCircle className="sub-status-icon error" />
-                        <p>Payment timeout. Please try again.</p>
-                      </>
-                    )}
-                    {paymentStatus === 'failed' && (
-                      <>
-                        <XCircle className="sub-status-icon error" />
-                        <p>Payment failed. Please try again.</p>
-                      </>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {selectedPaymentMethod === 'card' && (
-                <div className="sub-card-section">
-                  <button
-                    className="sub-card-payment-btn"
-                    onClick={() => handleRazorpayPayment({ 
-                      id: orderId, 
-                      amount: selectedPlan.price * 100, 
-                      currency: 'INR',
-                      key: 'rzp_test_1234567890'
-                    })}
-                  >
-                    Pay with Card/NetBanking
-                  </button>
-                  <p className="sub-secure-note">Secure payment powered by Razorpay</p>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Success Modal */}
+      {/* Success Modal - Only shown after successful payment */}
       {successModalOpen && (
-        <div className="sub-modal-overlay">
-          <div className="sub-modal-content">
+        <div className="subscription-modal-overlay">
+          <div className="subscription-modal-content">
             <button 
-              className="sub-modal-close"
+              className="subscription-modal-close"
               onClick={() => setSuccessModalOpen(false)}
             >
               <X />
             </button>
             
-            <div className="sub-modal-body">
-              <div className="sub-success-icon">
+            <div className="subscription-modal-body">
+              <div className="subscription-success-icon">
                 <CheckCircle />
               </div>
               
-              <h2 className="sub-modal-title">Welcome to GreenGuide Premium!</h2>
-              <p className="sub-success-message">Your {selectedPlan.type} subscription is now active.</p>
+              <h2 className="subscription-modal-title">Welcome to GreenGuide Premium!</h2>
+              <p className="subscription-success-message">Your {selectedPlan.type} subscription is now active.</p>
 
-              <div className="sub-subscription-details">
-                <div className="sub-detail-row">
+              <div className="subscription-subscription-details">
+                <div className="subscription-detail-row">
                   <span>Plan:</span>
                   <span>Premium - {selectedPlan.type.charAt(0).toUpperCase() + selectedPlan.type.slice(1)}</span>
                 </div>
-                <div className="sub-detail-row">
+                <div className="subscription-detail-row">
                   <span>Amount Paid:</span>
                   <span className="amount">₹{selectedPlan.price}</span>
                 </div>
-                <div className="sub-detail-row">
+                <div className="subscription-detail-row">
                   <span>Next Billing:</span>
                   <span>{getNextBillingDate(selectedPlan.type)}</span>
                 </div>
               </div>
 
-              <div className="sub-next-steps">
+              <div className="subscription-next-steps">
                 <h4>What's Next?</h4>
                 <ul>
                   <li>
@@ -764,7 +571,7 @@ function Subscribe() {
               </div>
 
               <button 
-                className="sub-start-exploring-btn"
+                className="subscription-start-exploring-btn"
                 onClick={() => setSuccessModalOpen(false)}
               >
                 Start Exploring
@@ -775,7 +582,7 @@ function Subscribe() {
       )}
 
       <button 
-        className={`sub-back-to-top ${showBackToTop ? 'show' : ''}`}
+        className={`subscription-back-to-top ${showBackToTop ? 'show' : ''}`}
         onClick={scrollToTop}
         aria-label="Back to top"
       >
