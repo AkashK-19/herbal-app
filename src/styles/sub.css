@@ -110,6 +110,9 @@ body {
 }
 
 .subscription-section-title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-size: 2.5rem;
   font-weight: 700;
   color: var(--secondary-green);

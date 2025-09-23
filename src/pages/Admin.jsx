@@ -4,7 +4,8 @@ import {
   Settings, Users, FileText, DollarSign, 
   Search, Filter, ChevronDown, ChevronUp,
   AlertCircle, CheckCircle, Image as ImageIcon,
-  Globe, Phone, Mail, MapPin, Clock
+  Globe, Phone, Mail, MapPin, Clock,
+  IndianRupeeIcon
 } from 'lucide-react';
 import '../styles/admin.css';
 
@@ -374,7 +375,7 @@ function AdminDashboard() {
               className={`admin-nav-btn ${activeTab === 'pricing' ? 'active' : ''}`}
               onClick={() => setActiveTab('pricing')}
             >
-              <DollarSign size={20} />
+              <IndianRupeeIcon size={20} />
               <span>Pricing</span>
             </button>
             <button 
