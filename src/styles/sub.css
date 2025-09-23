@@ -490,9 +490,6 @@ body {
   background: linear-gradient(180deg, #f8fffe 0%, var(--light-green) 100%);
 }
 
-.subscription-faq-section {
-  align-items: center;
-}
 .subscription-faq-container {
   max-width: 800px;
   margin: 0 auto;
