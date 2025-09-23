@@ -1,12 +1,11 @@
-// Home.jsx 
 import React, { useState, useEffect, useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom'; 
 import FavoriteButton from '../components/FavoriteButton'; 
 import '../styles/home.css'; 
 import '../styles/plants.css'; 
-import { LoadingContext } from '../context/LoadingContext'; // Adjust path if needed
+import { LoadingContext } from '../context/LoadingContext'; 
 
-// Mock data (unchanged)
+// Mock data 
 const mockFeaturedPlants = [
   {
     id: 3, 
@@ -101,7 +100,7 @@ const mockSubscriptionPlans = [
   }
 ];
 
-// Mock sample reviews (unchanged)
+// Mock sample reviews
 const sampleReviews = [
   {
     name: "James Parker",
@@ -123,16 +122,13 @@ function Home() {
 
   const navigate = useNavigate();
 
-  // Dynamic stats calculation (unchanged)
+
   const totalPlants = mockFeaturedPlants.length;
   const uniqueBenefits = new Set(
     mockFeaturedPlants.flatMap(p => p.health_benefits.split(',').map(b => b.trim().toLowerCase()))
   ).size;
 
   useEffect(() => {
-    // No timeout here anymore
-
-    // Check if user is logged in (unchanged)
     const userData = sessionStorage.getItem('currentUser');
     const loginStatus = sessionStorage.getItem('isLoggedIn');
     
@@ -145,7 +141,7 @@ function Home() {
     setReviews(savedReviews.length > 0 ? savedReviews : sampleReviews);
   }, []);
 
-  // Function to handle logout (unchanged)
+  // Function to handle logout 
   const handleLogout = () => {
     sessionStorage.removeItem('currentUser');
     sessionStorage.removeItem('isLoggedIn');
@@ -153,7 +149,7 @@ function Home() {
     setIsLoggedIn(false);
   };
 
-  // Function to add review (unchanged)
+  // Function to add review 
   const addReview = (newReview) => {
     const updatedReviews = [newReview, ...reviews];
     setReviews(updatedReviews); 
@@ -162,7 +158,7 @@ function Home() {
     setTimeout(() => setShowSuccess(false), 3000);
   };
 
-  // Handle form submit (unchanged)
+  // Handle form submit
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!name.trim()) {
@@ -189,12 +185,10 @@ function Home() {
     setMessage('');
   };
 
-  // Plant card click 
   const handlePlantCardClick = (plantId) => {
     navigate(`/plants/${plantId}`);
   };
 
-  // Subscription card click 
   const handleSubscriptionClick = (planId) => {
     navigate(`/subscribe/${planId}`);
   };
