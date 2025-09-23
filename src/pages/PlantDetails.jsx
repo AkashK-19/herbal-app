@@ -268,7 +268,6 @@ function PlantDetails() {
     const content = `${currentTranslation.title}. Scientific name: ${currentTranslation.scientific}. ${currentTranslation.description}. Region: ${currentTranslation.region}. Season: ${currentTranslation.season}. Plant type: ${currentTranslation.plantType}.`;
 
     if ('speechSynthesis' in window) {
-      // Stop any ongoing speech
       window.speechSynthesis.cancel();
 
       if (isPlaying) {
@@ -277,7 +276,7 @@ function PlantDetails() {
       }
 
       const utterance = new SpeechSynthesisUtterance(content);
-      utterance.lang = selectedLanguage === 'mr' ? 'hi-IN' : 'en-US'; // Using Hindi for Marathi approximation
+      utterance.lang = selectedLanguage === 'mr' ? 'hi-IN' : 'en-US'; 
       utterance.rate = 0.8;
       utterance.pitch = 1;
       

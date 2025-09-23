@@ -636,6 +636,7 @@
     gap: 8px;
 }
 
+
 /* Loading States */
 .loading-container {
     display: flex;
@@ -1014,4 +1015,44 @@
         grid-template-columns: repeat(2, 1fr);
         gap: 15px;
     }
+}
+
+/* Sticky Footer CSS - Add this to your plants.css or main CSS file */
+
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+#root {
+  height: 100%;
+}
+
+.App {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+main {
+  flex: 1;
+}
+
+.footer {
+  margin-top: auto;
+  padding: 20px;
+  text-align: center;
+  background: #2e7d32;
+  color: white;
+}
+
+/* Ensure error/loading pages take up space to push footer down */
+.error-container,
+.loading-container {
+  min-height: 60vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
 }

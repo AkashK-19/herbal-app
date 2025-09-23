@@ -581,13 +581,13 @@ function Subscribe() {
         </div>
       )}
 
-      <button 
-        className={`subscription-back-to-top ${showBackToTop ? 'show' : ''}`}
-        onClick={scrollToTop}
-        aria-label="Back to top"
-      >
-        <ArrowUp />
-      </button>
+      {/* Back to Top Button */}
+      {showBackToTop && (
+        <div className="back-to-top show" onClick={scrollToTop}>
+          <i className="fas fa-chevron-up"></i>
+        </div>
+      )}
+  
     </div>
   );
 }

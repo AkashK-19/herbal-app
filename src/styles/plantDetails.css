@@ -160,11 +160,6 @@ body {
     padding: 0 var(--spacing-lg);
 }
 
-/* Spacing for header */
-.sp {
-    height: 80px;
-}
-
 /* Main Content */
 .main {
     padding: var(--spacing-xl) 0;
