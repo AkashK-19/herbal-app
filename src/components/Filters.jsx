@@ -1,5 +1,5 @@
 import React from 'react';
-import '../styles/filters.css'; // Move filter styles here
+import '../styles/filters.css'; 
 
 function Filters({ filters, filterOptions, handleFilterChange, clearFilters, hasActiveFilters }) {
   return (
