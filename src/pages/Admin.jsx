@@ -9,6 +9,9 @@ import {
 } from 'lucide-react';
 import '../styles/admin.css';
 
+// API base URL - adjust this to your backend URL
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+
 function AdminDashboard() {
   // State management
   const [activeTab, setActiveTab] = useState('plants');
@@ -22,107 +25,60 @@ function AdminDashboard() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
   const [websiteSettings, setWebsiteSettings] = useState({
-    siteTitle: 'GreenGuide',
-    metaDescription: 'Your complete guide to medicinal plants and herbal remedies',
-    adminEmail: 'admin@greenguide.in',
+    siteTitle: '',
+    metaDescription: '',
+    adminEmail: '',
     maintenanceMode: false
   });
 
-  // Mock data initialization
+  // Load data on component mount
   useEffect(() => {
-    initializeMockData();
+    loadInitialData();
   }, []);
 
-  const initializeMockData = () => {
-    const mockPlants = [
-      {
-        id: 1,
-        title: 'Tulsi',
-        scientific: 'Ocimum sanctum',
-        category: 'Sacred Herb',
-        description: 'Tulsi, also known as Holy Basil, is considered the most sacred plant in Hindu tradition. This aromatic herb has been revered for over 3,000 years for its remarkable healing properties and spiritual significance.',
-        region: 'India, Southeast Asia',
-        season: 'Spring, Summer, Monsoon',
-        plantType: 'Perennial Herb',
-        healthBenefits: ['Immunity booster', 'Anti-stress', 'Respiratory health', 'Anti-inflammatory'],
-        images: ['./public/assets/tulsi3.jpg'],
-        status: 'published',
-        medicinalUses: [
-          {
-            title: 'Immune System Booster',
-            description: 'Rich in antioxidants and essential oils that strengthen the body\'s natural defense mechanisms.'
-          },
-          {
-            title: 'Stress & Anxiety Relief',
-            description: 'Acts as an adaptogen, helping the body cope with physical and mental stress naturally.'
-          }
-        ],
-        growingGuide: 'Soak seeds for 12-24 hours, plant in well-draining soil with pH 6.0-7.5, provide 6-8 hours sunlight daily.',
-        traditionalUses: ['Herbal teas for wellness', 'Religious ceremonies', 'Natural remedy for fever'],
-        translations: {
-          mr: {
-            title: 'तुळस',
-            description: 'तुळस ही हिंदू परंपरेत सर्वात पवित्र वनस्पती मानली जाते.'
-          }
-        }
-      },
-      {
-        id: 2,
-        title: 'Turmeric',
-        scientific: 'Curcuma longa',
-        category: 'Root Spice',
-        description: 'Turmeric is a golden-yellow rhizome that has been used for over 4,000 years in traditional medicine. Known as the "Golden Spice of Life," it contains powerful anti-inflammatory compounds.',
-        region: 'India, Southeast Asia, Central America',
-        season: 'Summer, Monsoon',
-        plantType: 'Rhizomatous Perennial',
-        healthBenefits: ['Anti-inflammatory', 'Antioxidant', 'Digestive aid', 'Wound healing'],
-        images: ['/api/placeholder/300/200'],
-        status: 'published',
-        medicinalUses: [
-          {
-            title: 'Anti-inflammatory Power',
-            description: 'Contains curcumin, a powerful compound that reduces inflammation throughout the body.'
-          }
-        ],
-        growingGuide: 'Plant rhizomes 2 inches deep, maintain consistent moisture, harvest after 8-10 months.',
-        traditionalUses: ['Culinary spice', 'Natural food coloring', 'Traditional medicine'],
-        translations: {
-          mr: {
-            title: 'हळद',
-            description: 'हळद ही सोनेरी-पिवळी rhizome आहे जी 4,000 वर्षांहून अधिक काळ पारंपारिक औषधांमध्ये वापरली जात आहे.'
-          }
-        }
+  const loadInitialData = async () => {
+    setLoading(true);
+    try {
+      await Promise.all([
+        loadPlants(),
+        loadContactInfo(),
+        loadPricing(),
+        loadSettings()
+      ]);
+    } catch (error) {
+      showMessage('error', 'Failed to load initial data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // API helper function
+  const apiCall = async (endpoint, method = 'GET', data = null) => {
+    try {
+      const config = {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          // Add authorization header if you have authentication
+          // 'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+        },
+      };
+
+      if (data && (method === 'POST' || method === 'PUT')) {
+        config.body = JSON.stringify(data);
       }
-    ];
 
-    const mockContactInfo = {
-      location: {
-        title: 'Our Location',
-        details: ['123 Botanical Gardens Street', 'Green Valley, Mumbai 400001', 'Maharashtra, India']
-      },
-      phone: {
-        title: 'Phone Numbers',
-        details: ['Main: +91 94034 00841', 'Support: +91 90211 65398', 'Toll-free: 1800-GREEN-01']
-      },
-      email: {
-        title: 'Email Addresses',
-        details: ['General: info@greenguide.in', 'Support: support@greenguide.in', 'Partnerships: business@greenguide.in']
-      },
-      hours: {
-        title: 'Business Hours',
-        details: ['Monday - Friday: 9:00 AM - 6:00 PM', 'Saturday: 10:00 AM - 4:00 PM', 'Sunday: Closed']
+      const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
-    };
-
-    const mockPricing = {
-      weekly: { price: 49, originalPrice: 299, discount: 33 },
-      monthly: { price: 149, originalPrice: 899, discount: 33 },
-      yearly: { price: 1499, originalPrice: 8999, discount: 33 }
-    };
-
-    setPlants(mockPlants);
-    setContactInfo(mockContactInfo);
-    setPricing(mockPricing);
+      
+      return await response.json();
+    } catch (error) {
+      console.error('API call failed:', error);
+      throw error;
+    }
   };
 
   const showMessage = (type, text) => {
@@ -130,10 +86,61 @@ function AdminDashboard() {
     setTimeout(() => setMessage({ type: '', text: '' }), 3000);
   };
 
+  // Data loading functions
+  const loadPlants = async () => {
+    try {
+      const data = await apiCall('/plants');
+      setPlants(data.plants || []);
+    } catch (error) {
+      console.error('Failed to load plants:', error);
+      setPlants([]);
+    }
+  };
+
+  const loadContactInfo = async () => {
+    try {
+      const data = await apiCall('/contact');
+      setContactInfo(data.contactInfo || {
+        location: { title: 'Our Location', details: [] },
+        phone: { title: 'Phone Numbers', details: [] },
+        email: { title: 'Email Addresses', details: [] },
+        hours: { title: 'Business Hours', details: [] }
+      });
+    } catch (error) {
+      console.error('Failed to load contact info:', error);
+    }
+  };
+
+  const loadPricing = async () => {
+    try {
+      const data = await apiCall('/pricing');
+      setPricing(data.pricing || {
+        weekly: { price: 0, originalPrice: 0, discount: 0 },
+        monthly: { price: 0, originalPrice: 0, discount: 0 },
+        yearly: { price: 0, originalPrice: 0, discount: 0 }
+      });
+    } catch (error) {
+      console.error('Failed to load pricing:', error);
+    }
+  };
+
+  const loadSettings = async () => {
+    try {
+      const data = await apiCall('/settings');
+      setWebsiteSettings(data.settings || {
+        siteTitle: 'GreenGuide',
+        metaDescription: 'Your complete guide to medicinal plants and herbal remedies',
+        adminEmail: 'admin@greenguide.in',
+        maintenanceMode: false
+      });
+    } catch (error) {
+      console.error('Failed to load settings:', error);
+    }
+  };
+
   // Plant Management Functions
   const handleAddPlant = () => {
     setEditingPlant({
-      id: Date.now(),
       title: '',
       scientific: '',
       category: '',
@@ -166,29 +173,27 @@ function AdminDashboard() {
     setLoading(true);
     
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      let savedPlant;
       
-      const existingIndex = plants.findIndex(p => p.id === editingPlant.id);
-      
-      if (existingIndex >= 0) {
-        const updatedPlants = [...plants];
-        updatedPlants[existingIndex] = editingPlant;
-        setPlants(updatedPlants);
+      if (editingPlant.id) {
+        // Update existing plant
+        savedPlant = await apiCall(`/plants/${editingPlant.id}`, 'PUT', editingPlant);
         showMessage('success', 'Plant updated successfully');
       } else {
-        setPlants([...plants, editingPlant]);
+        // Create new plant
+        savedPlant = await apiCall('/plants', 'POST', editingPlant);
         showMessage('success', 'Plant added successfully');
       }
+      
+      // Refresh plants list
+      await loadPlants();
       
       setShowPlantModal(false);
       setEditingPlant(null);
       
-      // Here you would make actual API calls to your backend
-      // await fetch('/api/plants', { method: 'POST', body: JSON.stringify(editingPlant) });
-      
     } catch (error) {
       showMessage('error', 'Failed to save plant. Please try again.');
+      console.error('Save plant error:', error);
     } finally {
       setLoading(false);
     }
@@ -196,39 +201,82 @@ function AdminDashboard() {
 
   const handleDeletePlant = async (plantId) => {
     if (window.confirm('Are you sure you want to delete this plant? This action cannot be undone.')) {
+      setLoading(true);
       try {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        setPlants(plants.filter(p => p.id !== plantId));
+        await apiCall(`/plants/${plantId}`, 'DELETE');
         showMessage('success', 'Plant deleted successfully');
         
-        // Here you would make actual API call to your backend
-        // await fetch(`/api/plants/${plantId}`, { method: 'DELETE' });
+        // Refresh plants list
+        await loadPlants();
         
       } catch (error) {
         showMessage('error', 'Failed to delete plant. Please try again.');
+        console.error('Delete plant error:', error);
+      } finally {
+        setLoading(false);
       }
     }
   };
 
-  const handleImageUpload = (event) => {
+  const handleImageUpload = async (event) => {
     const files = Array.from(event.target.files);
-    files.forEach(file => {
-      if (file && file.type.startsWith('image/')) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const newImages = [...(editingPlant.images || []), e.target.result];
-          setEditingPlant({ ...editingPlant, images: newImages });
-        };
-        reader.readAsDataURL(file);
+    
+    if (files.length === 0) return;
+    
+    setLoading(true);
+    const uploadedImages = [];
+    
+    try {
+      for (const file of files) {
+        if (file && file.type.startsWith('image/')) {
+          const formData = new FormData();
+          formData.append('image', file);
+          
+          // Upload image to server
+          const response = await fetch(`${API_BASE_URL}/upload`, {
+            method: 'POST',
+            body: formData,
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            uploadedImages.push(data.imageUrl);
+          }
+        }
       }
-    });
+      
+      // Update editing plant with new image URLs
+      const newImages = [...(editingPlant.images || []), ...uploadedImages];
+      setEditingPlant({ ...editingPlant, images: newImages });
+      
+      if (uploadedImages.length > 0) {
+        showMessage('success', `${uploadedImages.length} image(s) uploaded successfully`);
+      }
+      
+    } catch (error) {
+      showMessage('error', 'Failed to upload images');
+      console.error('Image upload error:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const removeImage = (index) => {
-    const newImages = editingPlant.images.filter((_, i) => i !== index);
-    setEditingPlant({ ...editingPlant, images: newImages });
+  const removeImage = async (index) => {
+    const imageUrl = editingPlant.images[index];
+    
+    try {
+      // Delete image from server
+      await apiCall('/upload', 'DELETE', { imageUrl });
+      
+      const newImages = editingPlant.images.filter((_, i) => i !== index);
+      setEditingPlant({ ...editingPlant, images: newImages });
+      
+    } catch (error) {
+      console.error('Failed to delete image:', error);
+      // Still remove from UI even if server deletion fails
+      const newImages = editingPlant.images.filter((_, i) => i !== index);
+      setEditingPlant({ ...editingPlant, images: newImages });
+    }
   };
 
   // Contact Info Management
@@ -253,14 +301,11 @@ function AdminDashboard() {
   const saveContactInfo = async () => {
     setLoading(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await apiCall('/contact', 'PUT', { contactInfo });
       showMessage('success', 'Contact information updated successfully');
-      
-      // Here you would make actual API call to your backend
-      // await fetch('/api/contact', { method: 'PUT', body: JSON.stringify(contactInfo) });
-      
     } catch (error) {
       showMessage('error', 'Failed to update contact information');
+      console.error('Save contact info error:', error);
     } finally {
       setLoading(false);
     }
@@ -288,14 +333,11 @@ function AdminDashboard() {
   const savePricing = async () => {
     setLoading(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await apiCall('/pricing', 'PUT', { pricing });
       showMessage('success', 'Pricing updated successfully');
-      
-      // Here you would make actual API call to your backend
-      // await fetch('/api/pricing', { method: 'PUT', body: JSON.stringify(pricing) });
-      
     } catch (error) {
       showMessage('error', 'Failed to update pricing');
+      console.error('Save pricing error:', error);
     } finally {
       setLoading(false);
     }
@@ -309,14 +351,11 @@ function AdminDashboard() {
   const saveSettings = async () => {
     setLoading(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await apiCall('/settings', 'PUT', { settings: websiteSettings });
       showMessage('success', 'Settings updated successfully');
-      
-      // Here you would make actual API call to your backend
-      // await fetch('/api/settings', { method: 'PUT', body: JSON.stringify(websiteSettings) });
-      
     } catch (error) {
       showMessage('error', 'Failed to update settings');
+      console.error('Save settings error:', error);
     } finally {
       setLoading(false);
     }
@@ -495,15 +534,16 @@ function AdminDashboard() {
                       {key === 'phone' && <Phone size={20} />}
                       {key === 'email' && <Mail size={20} />}
                       {key === 'hours' && <Clock size={20} />}
-                      {info.title}
+                      {info.title || key.charAt(0).toUpperCase() + key.slice(1)}
                     </h3>
-                    {info.details.map((detail, index) => (
+                    {info.details && info.details.length > 0 ? info.details.map((detail, index) => (
                       <div key={index} className="admin-contact-item">
                         <input
-                          type="text"
+                          type={key === 'email' ? 'email' : 'text'}
                           value={detail}
                           onChange={(e) => handleContactInfoChange(key, index, e.target.value)}
                           className="admin-input"
+                          placeholder={`Enter ${key} detail`}
                         />
                         <button
                           className="admin-btn admin-btn-danger admin-btn-small"
@@ -512,16 +552,39 @@ function AdminDashboard() {
                           <X size={16} />
                         </button>
                       </div>
-                    ))}
+                    )) : (
+                      <p className="admin-no-data">No {key} details added yet</p>
+                    )}
                     <button
                       className="admin-btn admin-btn-secondary admin-btn-small"
                       onClick={() => addContactDetail(key)}
                     >
                       <Plus size={16} />
-                      Add Detail
+                      Add {key === 'location' ? 'Address' : key === 'phone' ? 'Phone' : key === 'email' ? 'Email' : 'Hours'} Detail
                     </button>
                   </div>
                 ))}
+                
+                {/* Add new contact section if no data exists */}
+                {Object.keys(contactInfo).length === 0 && (
+                  <div className="admin-empty-state">
+                    <p>No contact information found. The system will create default sections when you save.</p>
+                    <button
+                      className="admin-btn admin-btn-primary"
+                      onClick={() => {
+                        setContactInfo({
+                          location: { title: 'Our Location', details: [''] },
+                          phone: { title: 'Phone Numbers', details: [''] },
+                          email: { title: 'Email Addresses', details: [''] },
+                          hours: { title: 'Business Hours', details: [''] }
+                        });
+                      }}
+                    >
+                      <Plus size={16} />
+                      Initialize Contact Sections
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -542,7 +605,7 @@ function AdminDashboard() {
               </div>
 
               <div className="admin-pricing-grid">
-                {Object.entries(pricing).map(([plan, details]) => (
+                {Object.keys(pricing).length > 0 ? Object.entries(pricing).map(([plan, details]) => (
                   <div key={plan} className="admin-pricing-card">
                     <h3>{plan.charAt(0).toUpperCase() + plan.slice(1)} Plan</h3>
                     <div className="admin-pricing-fields">
@@ -550,25 +613,31 @@ function AdminDashboard() {
                         <label>Current Price (₹)</label>
                         <input
                           type="number"
-                          value={details.price}
+                          value={details.price || 0}
                           onChange={(e) => handlePricingChange(plan, 'price', e.target.value)}
                           className="admin-input"
+                          placeholder="Enter current price"
+                          min="0"
+                          step="1"
                         />
                       </div>
                       <div className="admin-field">
                         <label>Original Price (₹)</label>
                         <input
                           type="number"
-                          value={details.originalPrice}
+                          value={details.originalPrice || 0}
                           onChange={(e) => handlePricingChange(plan, 'originalPrice', e.target.value)}
                           className="admin-input"
+                          placeholder="Enter original price"
+                          min="0"
+                          step="1"
                         />
                       </div>
                       <div className="admin-field">
                         <label>Discount (%)</label>
                         <input
                           type="number"
-                          value={details.discount}
+                          value={details.discount || 0}
                           readOnly
                           className="admin-input admin-input-readonly"
                         />
@@ -576,12 +645,29 @@ function AdminDashboard() {
                       </div>
                     </div>
                     <div className="admin-pricing-preview">
-                      <span className="admin-price-current">₹{details.price}</span>
-                      <span className="admin-price-original">₹{details.originalPrice}</span>
-                      <span className="admin-discount">{details.discount}% OFF</span>
+                      <span className="admin-price-current">₹{details.price || 0}</span>
+                      <span className="admin-price-original">₹{details.originalPrice || 0}</span>
+                      <span className="admin-discount">{details.discount || 0}% OFF</span>
                     </div>
                   </div>
-                ))}
+                )) : (
+                  <div className="admin-empty-state">
+                    <p>No pricing plans found. Click below to create default pricing structure.</p>
+                    <button
+                      className="admin-btn admin-btn-primary"
+                      onClick={() => {
+                        setPricing({
+                          weekly: { price: 0, originalPrice: 0, discount: 0 },
+                          monthly: { price: 0, originalPrice: 0, discount: 0 },
+                          yearly: { price: 0, originalPrice: 0, discount: 0 }
+                        });
+                      }}
+                    >
+                      <Plus size={16} />
+                      Create Pricing Plans
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -652,7 +738,7 @@ function AdminDashboard() {
         <div className="admin-modal-overlay">
           <div className="admin-modal">
             <div className="admin-modal-header">
-              <h2>{editingPlant.title ? 'Edit Plant' : 'Add New Plant'}</h2>
+              <h2>{editingPlant.id ? 'Edit Plant' : 'Add New Plant'}</h2>
               <button 
                 className="admin-modal-close"
                 onClick={() => setShowPlantModal(false)}
